@@ -12,6 +12,7 @@ import org.newdawn.spaceinvaders.SpriteStore;
 public class AlienEntity extends Entity {
 	/** The speed at which the alient moves horizontally */
 	private double moveSpeed = 75;
+	private double originalMoveSpeed = 75;
 	/** The game in which the entity exists */
 	private Game game;
 	/** The animation frames */
@@ -22,6 +23,10 @@ public class AlienEntity extends Entity {
 	private long frameDuration = 250;
 	/** The current frame of animation being displayed */
 	private int frameNumber;
+	/** The alien's current health */
+	private int health = 1;
+	private boolean frozen = false;
+	private long freezeEndTime = 0;
 	
 	/**
 	 * Create a new alien entity
@@ -48,25 +53,39 @@ public class AlienEntity extends Entity {
 	 * 
 	 * @param delta The time that has elapsed since last move
 	 */
+	public void freeze(int duration) {
+		frozen = true;
+		freezeEndTime = System.currentTimeMillis() + duration;
+		dx = 0;  // 움직임 중지
+	}
+
 	public void move(long delta) {
-		// since the move tells us how much time has passed
-		// by we can use it to drive the animation, however
-		// its the not the prettiest solution
-		lastFrameChange += delta;
-		
-		// if we need to change the frame, update the frame number
-		// and flip over the sprite in use
-		if (lastFrameChange > frameDuration) {
-			// reset our frame change time counter
-			lastFrameChange = 0;
+		// 얼어있는지 확인하고 시간이 지났으면 해제
+		if (frozen && System.currentTimeMillis() > freezeEndTime) {
+			frozen = false;
+			dx = (dx >= 0) ? moveSpeed : -moveSpeed;
+		}
+
+		if (!frozen) {
+			// since the move tells us how much time has passed
+			// by we can use it to drive the animation, however
+			// its the not the prettiest solution
+			lastFrameChange += delta;
 			
-			// update the frame
-			frameNumber++;
-			if (frameNumber >= frames.length) {
-				frameNumber = 0;
+			// if we need to change the frame, update the frame number
+			// and flip over the sprite in use
+			if (lastFrameChange > frameDuration) {
+				// reset our frame change time counter
+				lastFrameChange = 0;
+				
+				// update the frame
+				frameNumber++;
+				if (frameNumber >= frames.length) {
+					frameNumber = 0;
+				}
+				
+				sprite = frames[frameNumber];
 			}
-			
-			sprite = frames[frameNumber];
 		}
 		
 		// if we have reached the left hand side of the screen and
@@ -98,6 +117,17 @@ public class AlienEntity extends Entity {
 		if (y > 570) {
 			game.notifyDeath();
 		}
+	}
+	
+	/**
+	 * Take damage from a hit
+	 * 
+	 * @param damage The amount of damage to take
+	 * @return true if the alien died from this damage, false otherwise
+	 */
+	public boolean takeDamage(int damage) {
+		health -= damage;
+		return health <= 0;
 	}
 	
 	/**
