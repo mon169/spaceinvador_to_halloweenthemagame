@@ -10,6 +10,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -18,6 +19,8 @@ import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.ShipEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
+import org.newdawn.spaceinvaders.shop.Shop;
+import org.newdawn.spaceinvaders.shop.Item;
 
 /**
  * The main hook of our game. This class with both act as a manager
@@ -41,19 +44,21 @@ public class Game extends Canvas
 	/** True if the game is currently "running", i.e. the game loop is looping */
 	private boolean gameRunning = true;
 	/** The list of all the entities that exist in our game */
-	private ArrayList entities = new ArrayList();
+	private ArrayList<Entity> entities = new ArrayList<Entity>();
+	
+	public List<Entity> getEntities() {
+		return new ArrayList<>(entities);
+	}
+	
 	/** The list of entities that need to be removed from the game this loop */
-	private ArrayList removeList = new ArrayList();
+	private ArrayList<Entity> removeList = new ArrayList<Entity>();
 	/** The entity representing the player */
-	private Entity ship;
-	/** The speed at which the player's ship should move (pixels/sec) */
-	private double moveSpeed = 300;
 	/** The time at which last fired a shot */
 	private long lastFire = 0;
-	/** The interval between our players shot (ms) */
-	private long firingInterval = 500;
 	/** The number of aliens left on the screen */
 	private int alienCount;
+	private int currentStage = 1;
+	private final int MAX_STAGE = 5;
 	
 	/** The message to display which waiting for a key press */
 	private String message = "";
@@ -75,6 +80,13 @@ public class Game extends Canvas
 	private String windowTitle = "Space Invaders 102";
 	/** The game window that we'll update with the frame count */
 	private JFrame container;
+	private ShipEntity ship;
+	private Shop shop;
+	private boolean shopOpen = false;
+	
+	public ShipEntity getShip() {
+		return ship;
+	}
 	
 	/**
 	 * Construct our game and set it running.
@@ -124,6 +136,7 @@ public class Game extends Canvas
 		// initialise the entities in our game so there's something
 		// to see at startup
 		initEntities();
+		shop = new Shop(); 
 	}
 	
 	/**
@@ -131,14 +144,30 @@ public class Game extends Canvas
 	 * create a new set.
 	 */
 	private void startGame() {
+		ShipEntity oldShip = null;
+		if (ship != null) {
+			// 기존 우주선의 상태 저장
+			oldShip = ship;
+		}
+		
+		// 게임 재시작이나 처음 시작할 때만 스테이지 초기화
+		if (message.contains("restart")) {
+			currentStage = 1;
+		} else if (message.isEmpty()) {
+			// 처음 시작할 때도 스테이지 1로 설정
+			currentStage = 1;
+		}
+		// 스테이지 클리어 후에는 currentStage 유지 (다음 스테이지로 진행)
+		
 		// clear out any existing entities and intialise a new set
 		entities.clear();
-		initEntities();
+		initEntities(oldShip);
 		
 		// blank out any keyboard settings we might currently have
 		leftPressed = false;
 		rightPressed = false;
 		firePressed = false;
+		shopOpen = false;
 	}
 	
 	/**
@@ -146,8 +175,21 @@ public class Game extends Canvas
 	 * entitiy will be added to the overall list of entities in the game.
 	 */
 	private void initEntities() {
+		initEntities(null);
+	}
+	
+	/**
+	 * Initialise the starting state of the entities with an optional previous ship state
+	 */
+	private void initEntities(ShipEntity oldShip) {
 		// create the player ship and place it roughly in the center of the screen
-		ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+		if (oldShip == null) {
+			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+		} else {
+			// 이전 우주선의 상태를 새 우주선에 복사
+			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+			ship.copyStateFrom(oldShip);
+		}
 		entities.add(ship);
 		
 		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
@@ -193,31 +235,34 @@ public class Game extends Canvas
 	 * are dead.
 	 */
 	public void notifyWin() {
-		message = "Well done! You Win!";
+		message = "축하합니다! 모든 스테이지를 클리어했습니다!\nESC키를 누르면 게임이 종료됩니다.";
 		waitingForKeyPress = true;
+		shopOpen = false;  // 마지막에는 상점을 열지 않음
 	}
 	
 	/**
 	 * Notification that an alien has been killed
 	 */
-	public void notifyAlienKilled() {
-		// reduce the alient count, if there are none left, the player has won!
-		alienCount--;
-		
-		if (alienCount == 0) {
-			notifyWin();
-		}
-		
-		// if there are still some aliens left then they all need to get faster, so
-		// speed up all the existing aliens
-		for (int i=0;i<entities.size();i++) {
-			Entity entity = (Entity) entities.get(i);
-			
+	public void addEntity(Entity entity) {
+		entities.add(entity);
+	}
+
+
+
+	private void updateAlienCount() {
+		// 현재 화면에 있는 실제 적의 수를 세기
+		int count = 0;
+		for (Entity entity : entities) {
 			if (entity instanceof AlienEntity) {
-				// speed up by 2%
-				entity.setHorizontalMovement(entity.getHorizontalMovement() * 1.02);
+				count++;
 			}
 		}
+		alienCount = count;
+	}
+
+	public void notifyAlienKilled() {
+		ship.earnMoney(30);  // 적 처치 보상 30골드로 수정
+		updateAlienCount();  // 남은 적 수 갱신
 	}
 	
 	/**
@@ -227,7 +272,7 @@ public class Game extends Canvas
 	 */
 	public void tryToFire() {
 		// check that we have waiting long enough to fire
-		if (System.currentTimeMillis() - lastFire < firingInterval) {
+		if (System.currentTimeMillis() - lastFire < ship.getFiringInterval()) {
 			return;
 		}
 		
@@ -309,8 +354,24 @@ public class Game extends Canvas
 			}
 			
 			// remove any entity that has been marked for clear up
-			entities.removeAll(removeList);
+			for (Entity entity : removeList) {
+				entities.remove(entity);
+			}
 			removeList.clear();
+
+			// 상태 변경 후 매 프레임마다 적 수 갱신
+			updateAlienCount();
+			
+			// 모든 적이 제거되었는지 확인
+			if (alienCount == 0 && !waitingForKeyPress) {
+				if (currentStage == MAX_STAGE) {
+					notifyWin();  // 최종 스테이지 클리어
+				} else {
+					message = "Stage " + currentStage + " 클리어!";
+					waitingForKeyPress = true;
+					shopOpen = true;
+				}
+			}
 
 			// if a game event has indicated that game logic should
 			// be resolved, cycle round every entity requesting that
@@ -325,13 +386,118 @@ public class Game extends Canvas
 			}
 			
 			// if we're waiting for an "any key" press then draw the 
-			// current message 
+			// current message or shop screen
 			if (waitingForKeyPress) {
 				g.setColor(Color.white);
-				g.drawString(message,(800-g.getFontMetrics().stringWidth(message))/2,250);
-				g.drawString("Press any key",(800-g.getFontMetrics().stringWidth("Press any key"))/2,300);
+				
+				if (shopOpen) {
+					// 상점 화면 배경
+					g.setColor(new Color(0, 0, 0, 200));
+					g.fillRect(0, 0, 800, 600);
+					g.setColor(Color.white);
+					
+					// 상점 제목
+					g.drawString("★ SHOP ★", 370, 50);
+					g.drawString("현재 보유 금액: " + ship.getMoney() + " 골드", 330, 80);
+					
+					// 아이템 목록
+					List<Item> items = shop.getItemsForSale();
+					int itemWidth = 350;  // 아이템 박스 너비
+					int itemHeight = 80;  // 아이템 박스 높이
+					int gap = 20;         // 아이템 사이 간격
+					int startX = 50;      // 시작 X 좌표
+					int startY = 130;     // 시작 Y 좌표
+					
+					for (int i = 0; i < items.size(); i++) {
+						Item item = items.get(i);
+						// 아이템의 행과 열 위치 계산
+						int row = i / 2;  // 2열로 나누기
+						int col = i % 2;  // 왼쪽/오른쪽 열
+						
+						int x = startX + col * (itemWidth + gap);
+						int y = startY + row * (itemHeight + gap/2);
+						
+						// 아이템 배경
+						g.setColor(new Color(50, 50, 50, 150));
+						g.fillRect(x, y, itemWidth, itemHeight - 5);
+						g.setColor(Color.white);
+						
+						// 아이템 정보
+						g.drawString((i+1) + ". " + item.getName(), x + 20, y + 25);
+						g.drawString("가격: " + item.getCost() + " 골드", x + 20, y + 45);
+						g.drawString("  " + item.getDescription(), x + 20, y + 65);
+					}
+					
+					// 조작 안내 배경
+					g.setColor(new Color(0, 0, 0, 200));
+					g.fillRect(0, 500, 800, 100);
+					g.setColor(Color.white);
+					
+					// 조작 안내
+					int bottomY = 530;
+					g.drawString("[ 조작 방법 ]", 350, bottomY);
+					
+					// 조작 안내를 가로로 배치
+					g.drawString("숫자 키(1-" + items.size() + "): 아이템 구매   |", 200, bottomY + 25);
+					g.drawString("R: 다음 스테이지   |", 420, bottomY + 25);
+					g.drawString("ESC: 게임 종료", 550, bottomY + 25);
+				} else if (message.contains("got you")) {
+					// 게임 오버 메시지
+					g.drawString(message,(800-g.getFontMetrics().stringWidth(message))/2,250);
+					g.drawString("Press R to restart or any other key to continue",(800-g.getFontMetrics().stringWidth("Press R to restart or any other key to continue"))/2,300);
+				} else if (message.contains("축하합니다")) {
+					// 게임 클리어 메시지
+					g.setColor(new Color(0, 0, 0, 200));
+					g.fillRect(0, 0, 800, 600);
+					g.setColor(Color.white);
+					
+					String[] lines = message.split("\n");
+					g.drawString(lines[0], (800-g.getFontMetrics().stringWidth(lines[0]))/2, 250);
+					g.drawString(lines[1], (800-g.getFontMetrics().stringWidth(lines[1]))/2, 300);
+				} else {
+					// 게임 시작 화면
+					g.setColor(new Color(0, 0, 0, 200));
+					g.fillRect(0, 0, 800, 600);
+					g.setColor(Color.white);
+					
+					String title = "SPACE INVADERS";
+					g.drawString(title, (800-g.getFontMetrics().stringWidth(title))/2, 250);
+					String startMessage = "Press any key to start";
+					g.drawString(startMessage, (800-g.getFontMetrics().stringWidth(startMessage))/2, 300);
+					
+					String controls = "Controls: ← → to move, SPACE to fire";
+					g.drawString(controls, (800-g.getFontMetrics().stringWidth(controls))/2, 350);
+				}
 			}
 			
+			// 플레이어 상태 표시
+			if (!waitingForKeyPress) {
+				g.setColor(Color.white);
+				g.drawString("STAGE " + currentStage, 20, 30);
+				g.drawString("남은 적: " + alienCount, 120, 30);
+				g.drawString("체력: " + ship.getHealth(), 20, 50);
+				g.drawString("방어력: " + ship.getDefense(), 20, 70);
+				g.drawString("공격력: " + ship.getAttackPower(), 20, 90);
+				g.drawString("골드: " + ship.getMoney(), 20, 110);
+			}
+			
+			// 특수 무기 소지 여부 표시
+			// 특수 무기 보유 현황
+			if (!waitingForKeyPress) {
+				int weaponY = 130;
+				if (ship.hasBomb() || ship.hasIceWeapon()) {
+					g.drawString("[ 보유 중인 특수 무기 ]", 20, weaponY);
+					weaponY += 20;
+				}
+				if (ship.hasBomb()) {
+					g.drawString(String.format("• 폭탄 x%d (B키로 사용)", ship.getBombCount()), 20, weaponY);
+					weaponY += 20;
+				}
+				if (ship.hasIceWeapon()) {
+					g.drawString(String.format("• 얼음 무기 x%d (I키로 사용)", ship.getIceWeaponCount()), 20, weaponY);
+				}
+			}
+
 			// finally, we've completed drawing so clear up the graphics
 			// and flip the buffer over
 			g.dispose();
@@ -343,9 +509,9 @@ public class Game extends Canvas
 			ship.setHorizontalMovement(0);
 			
 			if ((leftPressed) && (!rightPressed)) {
-				ship.setHorizontalMovement(-moveSpeed);
+				ship.setHorizontalMovement(-ship.getMoveSpeed());
 			} else if ((rightPressed) && (!leftPressed)) {
-				ship.setHorizontalMovement(moveSpeed);
+				ship.setHorizontalMovement(ship.getMoveSpeed());
 			}
 			
 			// if we're pressing fire, attempt to fire
@@ -401,6 +567,12 @@ public class Game extends Canvas
 			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 				firePressed = true;
 			}
+			if (e.getKeyCode() == KeyEvent.VK_B) {
+				ship.useBomb();
+			}
+			if (e.getKeyCode() == KeyEvent.VK_I) {
+				ship.useIceWeapon();
+			}
 		} 
 		
 		/**
@@ -439,10 +611,45 @@ public class Game extends Canvas
 			// the shoot or move keys, hence the use of the "pressCount"
 			// counter.
 			if (waitingForKeyPress) {
-				if (pressCount == 1) {
-					// since we've now recieved our key typed
-					// event we can mark it as such and start 
-					// our new game
+				if (shopOpen) {
+					// 상점이 열려있을 때는 숫자 키 입력을 처리
+					char keyChar = e.getKeyChar();
+					if (keyChar >= '1' && keyChar <= '9') {
+						int itemIndex = keyChar - '1';
+						shop.purchaseItem(ship, itemIndex);
+					} else if (keyChar == 'r' || keyChar == 'R') {
+						// 다음 스테이지 시작
+						currentStage++; // 여기서 스테이지를 증가
+						waitingForKeyPress = false;
+						startGame();
+					} else if (keyChar == 27) { // ESC 키
+						System.exit(0);
+					}
+				} else if (message.contains("got you") || message.contains("축하합니다")) {
+					// 게임 오버 상태 또는 게임 클리어 상태
+					char keyChar = e.getKeyChar();
+					if (keyChar == 'r' || keyChar == 'R') {
+						if (message.contains("축하합니다")) {
+							// 게임 클리어 후 R키 - 게임 종료
+							System.exit(0);
+						} else {
+							// 게임 오버 후 R키 - 게임 재시작
+							message = "restart";
+							waitingForKeyPress = false;
+							startGame();
+						}
+					} else if (pressCount == 1) {
+						// 게임 계속하기 (게임 오버 상태에서만)
+						if (!message.contains("축하합니다")) {
+							waitingForKeyPress = false;
+							startGame();
+							pressCount = 0;
+						}
+					} else {
+						pressCount++;
+					}
+				} else if (pressCount == 1) {
+					// 게임 시작
 					waitingForKeyPress = false;
 					startGame();
 					pressCount = 0;
@@ -451,7 +658,7 @@ public class Game extends Canvas
 				}
 			}
 			
-			// if we hit escape, then quit the game
+			// ESC 키를 누르면 게임 종료
 			if (e.getKeyChar() == 27) {
 				System.exit(0);
 			}
