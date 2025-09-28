@@ -14,6 +14,8 @@ public class ShotEntity extends Entity {
 	private Game game;
 	/** True if this shot has been "used", i.e. its hit something */
 	private boolean used = false;
+	/** The attack power of this shot, inherited from the ship */
+	private int attackPower;
 	
 	/**
 	 * Create a new shot from the player
@@ -27,6 +29,7 @@ public class ShotEntity extends Entity {
 		super(sprite,x,y);
 		
 		this.game = game;
+		this.attackPower = game.getShip().getAttackPower();
 		
 		dy = moveSpeed;
 	}
@@ -59,15 +62,19 @@ public class ShotEntity extends Entity {
 			return;
 		}
 		
-		// if we've hit an alien, kill it!
+		// if we've hit an alien, damage it!
 		if (other instanceof AlienEntity) {
-			// remove the affected entities
+			// remove this shot
 			game.removeEntity(this);
-			game.removeEntity(other);
-			
-			// notify the game that the alien has been killed
-			game.notifyAlienKilled();
 			used = true;
+			
+			// damage the alien
+			AlienEntity alien = (AlienEntity) other;
+			if (alien.takeDamage(this.attackPower)) {
+				// if the alien died from this shot
+				game.removeEntity(alien);
+				game.notifyAlienKilled();
+			}
 		}
 	}
 }
