@@ -38,7 +38,7 @@ public class Shop {
 
         // 방어력 증가
         itemsForSale.add(new Item(
-            "방어 실드",
+            "방어력 강화",
             "방어력을 2 증가시킵니다.",
             300
         ) {
@@ -62,7 +62,7 @@ public class Shop {
 
         // 최대 체력 증가
         itemsForSale.add(new Item(
-            "방어막 강화",
+            "체력 강화",
             "최대 체력을 20 증가시킵니다.",
             350
         ) {
@@ -105,6 +105,18 @@ public class Shop {
             @Override
             public void applyEffect(ShipEntity ship) {
                 ship.giveIceWeapon();
+            }
+        });
+        
+        // 에너지 실드 아이템 추가 
+        itemsForSale.add(new Item(
+            "방어막 생성",
+            "방어력이 n일 때 n초 동안 적의 총알을 1회 막아주는 방어막을 생성합니다.",
+            400
+        ) {
+            @Override
+            public void applyEffect(ShipEntity ship) {
+                ship.activateShield();
             }
         });
     }
