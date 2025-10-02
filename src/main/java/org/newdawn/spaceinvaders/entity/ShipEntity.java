@@ -20,6 +20,25 @@ public class ShipEntity extends Entity {
 	private long frozenEndTime = 0;
 	private int bombCount = 0;
 	private int iceWeaponCount = 0;
+	private int shieldCount = 0;
+	public boolean hasShield() {
+		return shieldCount > 0;
+	}
+
+	public int getShieldCount() {
+		return shieldCount;
+	}
+
+	public void giveShield() {
+		this.shieldCount++;
+	}
+
+	public void useShield(int duration) {
+		if (shieldCount > 0) {
+			game.addEntity(new ShieldEntity(game, this, duration));
+			shieldCount--;
+		}
+	}
 	
 	/**
 	 * Create a new entity to represent the players ship
@@ -142,6 +161,11 @@ public class ShipEntity extends Entity {
 	 * @param delta The time that has elapsed since last move (ms)
 	 */
 	public void move(long delta) {
+		checkFrozenStatus();
+		if (isFrozen) {
+			// 얼려진 상태에서는 움직이지 않음
+			return;
+		}
 		// if we're moving left and have reached the left hand side
 		// of the screen, don't move
 		if ((dx < 0) && (x < 10)) {
@@ -221,4 +245,29 @@ public class ShipEntity extends Entity {
 			iceWeaponCount--;
 		}
 	}
+	
+	// ShipEntity의 아이템 하나 제거 메서드 추가
+    public boolean removeOneItem() {
+        if (!inventory.isEmpty()) {
+            inventory.remove(inventory.size() - 1);
+            return true;
+        }
+        return false;
+    }
+
+    // ShipEntity에 방어막 활성화 메서드 수정
+    public void activateShield() {
+        int duration = defense * 1000; // 방어력 1당 1초
+        if (duration > 0) {
+            game.addEntity(new ShieldEntity(game, this, duration));
+        }
+    }
+    
+    private boolean canAttack = true;
+    public void setCanAttack(boolean canAttack) {
+        this.canAttack = canAttack;
+    }
+    public boolean canAttack() {
+        return canAttack;
+    }
 }

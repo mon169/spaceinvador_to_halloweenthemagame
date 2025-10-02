@@ -19,6 +19,7 @@ import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.ShipEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
+import org.newdawn.spaceinvaders.entity.ObstacleEntity;
 import org.newdawn.spaceinvaders.shop.Shop;
 import org.newdawn.spaceinvaders.shop.Item;
 
@@ -55,9 +56,15 @@ public class Game extends Canvas
 	/** The entity representing the player */
 	/** The time at which last fired a shot */
 	private long lastFire = 0;
+	private long lastAlienShotTime = 0;
 	/** The number of aliens left on the screen */
 	private int alienCount;
 	private int currentStage = 1;
+	
+	public int getCurrentStage() {
+        return currentStage;
+    }
+	
 	private final int MAX_STAGE = 5;
 	
 	/** The message to display which waiting for a key press */
@@ -191,14 +198,28 @@ public class Game extends Canvas
 			ship.copyStateFrom(oldShip);
 		}
 		entities.add(ship);
-		
-		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
 		alienCount = 0;
 		for (int row=0;row<5;row++) {
 			for (int x=0;x<12;x++) {
 				Entity alien = new AlienEntity(this,100+(x*50),(50)+row*30);
 				entities.add(alien);
 				alienCount++;
+			}
+		}
+
+		// 장애물 생성 (stage 4 이상)
+		if (currentStage >= 4) {
+			int obstacleRows = (currentStage >= 5) ? 2 : 1;
+			int panelWidth = 800;
+			int obstacleWidth = 33; // 장애물 sprite 가로 크기 기준
+			int obstacleCount = panelWidth / obstacleWidth;
+			int startX = 0;
+			for (int row=0; row<obstacleRows; row++) {
+				for (int x=0; x<obstacleCount; x++) {
+					int obsX = startX + (x*obstacleWidth);
+					int obsY = 400 + (row*40); // 장애물 더 아래에 배치
+					entities.add(new ObstacleEntity(this, obsX, obsY));
+				}
 			}
 		}
 	}
@@ -295,12 +316,7 @@ public class Game extends Canvas
 	 */
 	public void gameLoop() {
 		long lastLoopTime = SystemTimer.getTime();
-		
-		// keep looping round til the game ends
 		while (gameRunning) {
-			// work out how long its been since the last update, this
-			// will be used to calculate how far the entities should
-			// move this loop
 			long delta = SystemTimer.getTime() - lastLoopTime;
 			lastLoopTime = SystemTimer.getTime();
 
@@ -321,15 +337,39 @@ public class Game extends Canvas
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
 			g.setColor(Color.black);
 			g.fillRect(0,0,800,600);
-			
+
 			// cycle round asking each entity to move itself
 			if (!waitingForKeyPress) {
+				// 적/유저 모두 장애물과 상관없이 공격 가능
 				for (int i=0;i<entities.size();i++) {
-					Entity entity = (Entity) entities.get(i);
-					
+					Entity entity = entities.get(i);
 					entity.move(delta);
 				}
+
+				if (alienCount > 0 && getCurrentStage() >= 2) {
+					long now = SystemTimer.getTime();
+					long alienShotInterval = 2000 - (getCurrentStage() - 2) * 200;
+					if (alienShotInterval < 500) alienShotInterval = 500;
+					if (now - lastAlienShotTime >= alienShotInterval) { // 필드 사용
+						lastAlienShotTime = now; // 필드 업데이트
+						java.util.List<AlienEntity> aliens = new java.util.ArrayList<>();
+						for (Entity entity : entities) {
+							if (entity instanceof AlienEntity) {
+								aliens.add((AlienEntity) entity);
+							}
+						}
+						if (!aliens.isEmpty()) {
+							int randomIndex = (int) (Math.random() * aliens.size());
+							AlienEntity shootingAlien = aliens.get(randomIndex);
+							shootingAlien.fireShot();
+        }
+    }
+}
+				
+				
 			}
+
+			
 			
 			// cycle round drawing all the entities we have in the game
 			for (int i=0;i<entities.size();i++) {
@@ -403,10 +443,10 @@ public class Game extends Canvas
 					// 아이템 목록
 					List<Item> items = shop.getItemsForSale();
 					int itemWidth = 350;  // 아이템 박스 너비
-					int itemHeight = 80;  // 아이템 박스 높이
+					int itemHeight = 70;  // 아이템 박스 높이
 					int gap = 20;         // 아이템 사이 간격
 					int startX = 50;      // 시작 X 좌표
-					int startY = 130;     // 시작 Y 좌표
+					int startY = 100;     // 시작 Y 좌표
 					
 					for (int i = 0; i < items.size(); i++) {
 						Item item = items.get(i);
@@ -423,9 +463,9 @@ public class Game extends Canvas
 						g.setColor(Color.white);
 						
 						// 아이템 정보
-						g.drawString((i+1) + ". " + item.getName(), x + 20, y + 25);
-						g.drawString("가격: " + item.getCost() + " 골드", x + 20, y + 45);
-						g.drawString("  " + item.getDescription(), x + 20, y + 65);
+						g.drawString((i+1) + ". " + item.getName()+" (가격: "+item.getCost()+"골드)", x + 20, y + 25);
+						//g.drawString("가격: " + item.getCost() + " 골드", x + 20, y + 45);//
+						g.drawString("  " + item.getDescription(), x + 20, y + 50);
 					}
 					
 					// 조작 안내 배경
@@ -439,8 +479,8 @@ public class Game extends Canvas
 					
 					// 조작 안내를 가로로 배치
 					g.drawString("숫자 키(1-" + items.size() + "): 아이템 구매   |", 200, bottomY + 25);
-					g.drawString("R: 다음 스테이지   |", 420, bottomY + 25);
-					g.drawString("ESC: 게임 종료", 550, bottomY + 25);
+					g.drawString("R: 다음 스테이지   |", 360, bottomY + 25);
+					g.drawString("ESC: 게임 종료", 470, bottomY + 25);
 				} else if (message.contains("got you")) {
 					// 게임 오버 메시지
 					g.drawString(message,(800-g.getFontMetrics().stringWidth(message))/2,250);
@@ -568,11 +608,18 @@ public class Game extends Canvas
 				firePressed = true;
 			}
 			if (e.getKeyCode() == KeyEvent.VK_B) {
-				ship.useBomb();
+				if (ship.hasBomb()) {
+					ship.useBomb();
+				}
 			}
 			if (e.getKeyCode() == KeyEvent.VK_I) {
-				ship.useIceWeapon();
+				if (ship.hasIceWeapon()) {
+					ship.useIceWeapon();
+				}
 			}
+			if (e.getKeyCode() == KeyEvent.VK_S) { // S키로 방어막 사용
+				ship.activateShield(); // 방어력에 따라 방어막(에너지 실드) 생성
+            }
 		} 
 		
 		/**
