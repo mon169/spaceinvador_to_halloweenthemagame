@@ -50,7 +50,7 @@ public class Shop {
 
         // 공격력 증가
         itemsForSale.add(new Item(
-            "레이저 강화",
+            "공격력 강화",
             "공격력을 1 증가시킵니다.",
             250
         ) {
@@ -72,18 +72,6 @@ public class Shop {
             }
         });
 
-        // 체력 회복
-        itemsForSale.add(new Item(
-            "수리 키트",
-            "체력을 50 회복합니다.",
-            200
-        ) {
-            @Override
-            public void applyEffect(ShipEntity ship) {
-                ship.heal(50);
-            }
-        });
-
         // 폭탄 아이템 추가
         itemsForSale.add(new Item(
             "폭탄",
@@ -98,7 +86,7 @@ public class Shop {
         
         // 얼음 공격 아이템 추가
         itemsForSale.add(new Item(
-            "얼음 무기",
+            "얼음 공격",
             "적을 잠시 얼릴 수 있는 무기를 얻습니다(I키로 사용)",
             150
         ) {
@@ -110,13 +98,13 @@ public class Shop {
         
         // 에너지 실드 아이템 추가 
         itemsForSale.add(new Item(
-            "방어막 생성",
-            "방어력이 n일 때 n초 동안 적의 총알을 1회 막아주는 방어막을 생성합니다.",
+            "방어막",
+            "방어력 수치만큼 초 동안 적의 총알을 1회 막아주는 방어막을\n생성합니다(S키로 사용)",
             400
         ) {
             @Override
             public void applyEffect(ShipEntity ship) {
-                ship.activateShield();
+                ship.giveShield(); // 방어막을 인벤토리에 추가
             }
         });
     }
@@ -136,7 +124,7 @@ public class Shop {
             selectedItem.applyEffect(playerShip); // 아이템 효과 적용!
             System.out.printf("'%s' 구매를 완료했습니다!\n", selectedItem.getName());
         } else {
-            System.out.println("💰 잔액이 부족합니다.");
+            System.out.println("잔액이 부족합니다.");
         }
     }
     
