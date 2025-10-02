@@ -67,9 +67,10 @@ public class AlienEntity extends Entity {
      */
     public void fireShot() {
         // 2스테이지 이상일 때만 발사
-        if (game.getCurrentStage() < 2 || !canAttack) {
+        if (!canAttack) {
             return;
         }
+        // 모든 스테이지에서 적이 공격하도록 변경
 
         double bulletSpeed;
         int stage = game.getCurrentStage();
@@ -81,12 +82,11 @@ public class AlienEntity extends Entity {
         else if (stage >= 5) bulletCount = 7;
         
         // 스테이지별 총알 속도 설정
-        if (stage <= 2) {
-            bulletSpeed = 200; 
-        } else if (stage <= 4) {
-            bulletSpeed = 400; 
+        // 스테이지 2에서만 20% 증가, 나머지는 기본 속도
+        if (stage == 2) {
+            bulletSpeed = 240; // 200 * 1.2 = 240 (20% 증가)
         } else {
-            bulletSpeed = 700;
+            bulletSpeed = 200; // 기본 속도
         }
         
         int centerX = (int)(getX() + sprite.getWidth() / 2.0);

@@ -12,7 +12,7 @@ import org.newdawn.spaceinvaders.shop.Item;
 public class ShipEntity extends Entity {
 	/** The game in which the ship exists */
 	private Game game;
-	private int maxHealth = 100;
+	private int maxHealth = 10; // 초기 체력을 10으로 설정
 	private int currentHealth;
 	private int defense = 0;
 	private int attackPower = 1;
@@ -65,6 +65,7 @@ public class ShipEntity extends Entity {
 	public void takeDamage(int damage) {
 		int actualDamage = Math.max(1, damage - defense);
 		currentHealth -= actualDamage;
+		// 체력이 0 이하면 게임 오버 (스테이지별 추가 제한은 Game 클래스에서 처리)
 		if (currentHealth <= 0) {
 			game.notifyDeath();
 		}
@@ -206,6 +207,7 @@ public class ShipEntity extends Entity {
 		this.money = other.money;
 		this.bombCount = other.bombCount;
 		this.iceWeaponCount = other.iceWeaponCount;
+		this.shieldCount = other.shieldCount; // 방어막 카운트도 복사
 	}
 
 	public void giveBomb() {
@@ -233,14 +235,15 @@ public class ShipEntity extends Entity {
 	}
 
 	public void useBomb() {
-		if (bombCount > 0) {
-			game.addEntity(new BombEntity(game, "sprites/shot.gif", (int)x, (int)y));
+		if (bombCount > 0 && game.itemsAllowed()) {
+			// 폭탄을 배 앞쪽에 생성하여 충돌을 방지 (y-30으로 배 위쪽에 생성)
+			game.addEntity(new BombEntity(game, "sprites/shot.gif", (int)x, (int)y-30));
 			bombCount--;
 		}
 	}
 
 	public void useIceWeapon() {
-		if (iceWeaponCount > 0) {
+		if (iceWeaponCount > 0 && game.itemsAllowed()) {
 			game.addEntity(new IceEntity(game, "sprites/shot.gif", (int)x, (int)y));
 			iceWeaponCount--;
 		}
@@ -257,9 +260,17 @@ public class ShipEntity extends Entity {
 
     // ShipEntity에 방어막 활성화 메서드 수정
     public void activateShield() {
-        int duration = defense * 1000; // 방어력 1당 1초
-        if (duration > 0) {
-            game.addEntity(new ShieldEntity(game, this, duration));
+        if (game.itemsAllowed()) {
+            // 방어막 인벤토리가 있는지 확인
+            if (shieldCount > 0) {
+                // 방어력이 0이라도 최소 3초는 지속되도록 함
+                int duration = Math.max(3000, defense * 1000); // 방어력 1당 1초, 최소 3초
+                game.addEntity(new ShieldEntity(game, this, duration));
+                shieldCount--; // 방어막 사용
+                System.out.println("방어막 활성화! 지속시간: " + duration/1000 + "초");
+            } else {
+                System.out.println("방어막이 없습니다!");
+            }
         }
     }
     
