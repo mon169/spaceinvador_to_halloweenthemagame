@@ -48,6 +48,8 @@ public abstract class Entity {
 		this.y = y;
 	}
 	
+
+	
 	/**
 	 * Request that this entity move itself based on a certain ammount
 	 * of time passing.
