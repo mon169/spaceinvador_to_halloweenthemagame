@@ -58,7 +58,12 @@ public class BombEntity extends Entity {
 
     @Override
     public void collidedWith(Entity other) {
-        // 다른 엔티티와 충돌하면 폭발
+        // ShipEntity와의 충돌은 무시 (자기 자신의 폭탄이므로 데미지를 주지 않음)
+        if (other instanceof ShipEntity) {
+            // 아무 일도 일어나지 않음 - 자신의 배는 폭탄에 맞지 않도록 함
+            return;
+        }
+        // 외계인과 충돌하면 폭발
         if (other instanceof AlienEntity) {
             explode();
         }

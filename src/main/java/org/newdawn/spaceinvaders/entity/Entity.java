@@ -102,6 +102,11 @@ public abstract class Entity {
 	 * @param g The graphics context on which to draw
 	 */
 	public void draw(Graphics g) {
+		if (sprite == null) {
+			System.err.println("[NULL SPRITE] " + getClass().getSimpleName()
+					+ " at (" + (int)x + "," + (int)y + ")");
+			return; // 개발 중 임시로 그리기 스킵
+	}
 		sprite.draw(g,(int) x,(int) y);
 	}
 	
@@ -163,4 +168,6 @@ public abstract class Entity {
 	 * @param other The entity with which this entity collided.
 	 */
 	public abstract void collidedWith(Entity other);
+
+	
 }
