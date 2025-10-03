@@ -237,14 +237,14 @@ public class ShipEntity extends Entity {
 	public void useBomb() {
 		if (bombCount > 0 && game.itemsAllowed()) {
 			// 폭탄을 배 앞쪽에 생성하여 충돌을 방지 (y-30으로 배 위쪽에 생성)
-			game.addEntity(new BombEntity(game, "sprites/shot.gif", (int)x, (int)y-30));
+			game.addEntity(new BombEntity(game, "sprites/shot.png", (int)x, (int)y-30));
 			bombCount--;
 		}
 	}
 
 	public void useIceWeapon() {
 		if (iceWeaponCount > 0 && game.itemsAllowed()) {
-			game.addEntity(new IceEntity(game, "sprites/shot.gif", (int)x, (int)y));
+			game.addEntity(new IceEntity(game, "sprites/shot.png", (int)x, (int)y));
 			iceWeaponCount--;
 		}
 	}

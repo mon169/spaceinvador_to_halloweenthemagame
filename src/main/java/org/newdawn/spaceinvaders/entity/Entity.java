@@ -102,6 +102,11 @@ public abstract class Entity {
 	 * @param g The graphics context on which to draw
 	 */
 	public void draw(Graphics g) {
+		if (sprite == null) {
+			System.err.println("[NULL SPRITE] " + getClass().getSimpleName()
+					+ " at (" + (int)x + "," + (int)y + ")");
+			return; // 개발 중 임시로 그리기 스킵
+	}
 		sprite.draw(g,(int) x,(int) y);
 	}
 	
@@ -137,11 +142,25 @@ public abstract class Entity {
 	 * @return True if the entities collide with each other
 	 */
 	public boolean collidesWith(Entity other) {
-		me.setBounds((int) x,(int) y,sprite.getWidth(),sprite.getHeight());
-		him.setBounds((int) other.x,(int) other.y,other.sprite.getWidth(),other.sprite.getHeight());
+    int marginX = 5; // 좌우 여백
+    int marginY = 5; // 상하 여백
 
-		return me.intersects(him);
-	}
+    me.setBounds(
+        (int) x + marginX,
+        (int) y + marginY,
+        sprite.getWidth() - marginX * 2,
+        sprite.getHeight() - marginY * 2
+    );
+
+    him.setBounds(
+        (int) other.x + marginX,
+        (int) other.y + marginY,
+        other.sprite.getWidth() - marginX * 2,
+        other.sprite.getHeight() - marginY * 2
+    );
+
+    return me.intersects(him);
+}
 	
 	/**
 	 * Notification that this entity collided with another.
@@ -149,4 +168,6 @@ public abstract class Entity {
 	 * @param other The entity with which this entity collided.
 	 */
 	public abstract void collidedWith(Entity other);
+
+	
 }

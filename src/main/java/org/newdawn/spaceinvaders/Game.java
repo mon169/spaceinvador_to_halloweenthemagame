@@ -19,6 +19,13 @@ import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.ShipEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
+import org.newdawn.spaceinvaders.shop.Shop;
+import org.newdawn.spaceinvaders.shop.Item;
+
+//배경추가
+import org.newdawn.spaceinvaders.Sprite;
+import org.newdawn.spaceinvaders.SpriteStore;
+
 import org.newdawn.spaceinvaders.entity.ObstacleEntity;
 import org.newdawn.spaceinvaders.shop.Shop;
 import org.newdawn.spaceinvaders.shop.Item;
@@ -95,7 +102,7 @@ public class Game extends Canvas
 			message = "";
 			
 			// 새로운 선박 생성
-			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+			ship = new ShipEntity(this,"sprites/ship.png",370,550);
 			entities.add(ship);
 			
 			// 필요한 경우 추가 초기화
@@ -130,7 +137,16 @@ public class Game extends Canvas
 	private ShipEntity ship;
 	private Shop shop;
 	private boolean shopOpen = false;
-	
+	//background
+
+	private Sprite bg;
+	private double bgY = 0;          // 세로 스크롤 오프셋
+	private double bgSpeed = 30; // px/s (0이면 고정 배경)
+
+
+	private Sprite startBtn;
+	private double startBtnScale = 0.75;
+
 	public ShipEntity getShip() {
 		return ship;
 	}
@@ -180,6 +196,12 @@ public class Game extends Canvas
 		createBufferStrategy(2);
 		strategy = getBufferStrategy();
 		
+		// === BG load ===
+		bg = SpriteStore.get().getSprite("bg/background.png");
+
+		// === Start button load ===
+		startBtn = SpriteStore.get().getSprite("sprites/startbutton.png");
+
 		// initialise the entities in our game so there's something
 		// to see at startup
 		initEntities();
@@ -270,10 +292,10 @@ public class Game extends Canvas
 	private void initEntities(ShipEntity oldShip) {
 		// create the player ship and place it roughly in the center of the screen
 		if (oldShip == null) {
-			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+			ship = new ShipEntity(this,"sprites/ship.png",370,550);
 		} else {
 			// 이전 우주선의 상태를 새 우주선에 복사
-			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+			ship = new ShipEntity(this,"sprites/ship.png",370,550);
 			ship.copyStateFrom(oldShip);
 		}
 		entities.add(ship);
@@ -358,7 +380,21 @@ public class Game extends Canvas
 	public void addEntity(Entity entity) {
 		entities.add(entity);
 	}
+	
+	private void drawBgCover(Graphics2D g, Sprite s, int offY) {
+    if (s == null) return;
+    int iw = s.getWidth(), ih = s.getHeight();
+    double scale = Math.max(800.0/iw, 600.0/ih); // 화면을 꽉 채우는 스케일
+    int dw = (int)Math.round(iw * scale);
+    int dh = (int)Math.round(ih * scale);
+    int dx = (800 - dw) / 2;
 
+    // 세로 스크롤
+    int sy = - (offY % dh);
+    s.drawScaled(g, dx, sy,    dw, dh);
+    s.drawScaled(g, dx, sy+dh, dw, dh);
+}
+	
 
 
 	private void updateAlienCount() {
@@ -390,7 +426,7 @@ public class Game extends Canvas
 		
 		// if we waited long enough, create the shot entity, and record the time.
 		lastFire = System.currentTimeMillis();
-		ShotEntity shot = new ShotEntity(this,"sprites/shot.gif",ship.getX()+10,ship.getY()-30);
+		ShotEntity shot = new ShotEntity(this,"sprites/shot.png",ship.getX()+10,ship.getY()-30);
 		entities.add(shot);
 	}
 	
@@ -411,7 +447,7 @@ public class Game extends Canvas
 			try {
 				long delta = SystemTimer.getTime() - lastLoopTime;
 				lastLoopTime = SystemTimer.getTime();
-
+        
 			// update the frame counter
 			lastFpsTime += delta;
 			fps++;
@@ -427,9 +463,11 @@ public class Game extends Canvas
 			// Get hold of a graphics context for the accelerated 
 			// surface and blank it out
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
-			g.setColor(Color.black);
-			g.fillRect(0,0,800,600);
+			//g.setColor(Color.black);
+			//g.fillRect(0,0,800,600);
 
+			// === draw background first (contain) ===
+			drawBgCover(g, bg, (int)bgY);
 			// cycle round asking each entity to move itself
 			if (!waitingForKeyPress) {
 				// 적/유저 모두 장애물과 상관없이 공격 가능
@@ -631,6 +669,28 @@ public class Game extends Canvas
 					g.fillRect(0, 0, 800, 600);
 					g.setColor(Color.white);
 					
+					// 게임 시작 화면
+					// (배경은 이미 drawBgContainTiledX(...)로 그려지고 있음)
+
+					// 버튼 크기 계산
+					// 버튼 최대 크기(원하는 값으로 조절)
+					int MAX_BTN_W = 700;   // 가로 최대
+					int MAX_BTN_H = 500;   // 세로 최대
+
+					int bw = startBtn.getWidth();
+					int bh = startBtn.getHeight();
+
+					// 화면 기준으로 과도하게 커지지 않도록 자동 스케일
+					double scale = Math.min(MAX_BTN_W / (double)bw, MAX_BTN_H / (double)bh);
+					int dw = (int)Math.round(bw * scale);
+					int dh = (int)Math.round(bh * scale);
+
+					// 중앙 ‘살짝 아래’
+					int btnX = (800 - dw) / 2;
+					int btnY = (600 - dh) / 2 + 40;
+
+					startBtn.drawScaled(g, btnX, btnY, dw, dh);
+
 					String title = "SPACE INVADERS";
 					g.drawString(title, (800-g.getFontMetrics().stringWidth(title))/2, 200);
 					String startMessage = "Press any key to start";

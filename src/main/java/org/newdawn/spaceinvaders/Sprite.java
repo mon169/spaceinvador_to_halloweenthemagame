@@ -42,7 +42,12 @@ public class Sprite {
 	public int getHeight() {
 		return image.getHeight(null);
 	}
-	
+	/** 
+ * Get the raw AWT Image inside this sprite 
+ */
+	public Image getImage() {
+	return image;
+	}
 	/**
 	 * Draw the sprite onto the graphics context provided
 	 * 
@@ -53,4 +58,12 @@ public class Sprite {
 	public void draw(Graphics g,int x,int y) {
 		g.drawImage(image,x,y,null);
 	}
+
+	/**
+ * Draw the sprite with scaling
+ */
+	public void drawScaled(Graphics g, int x, int y, int w, int h) {
+		g.drawImage(image, x, y, w, h, null);
+	}
 }
+	

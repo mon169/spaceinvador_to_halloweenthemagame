@@ -45,7 +45,7 @@ public class EnemyShotEntity extends Entity {
         } else if (attackType == 2) {
             shotSprite = "sprites/redshot.png";
         } else {
-            shotSprite = "sprites/shot.gif";
+            shotSprite = "sprites/shot.png";
         }
         this.sprite = org.newdawn.spaceinvaders.SpriteStore.get().getSprite(shotSprite);
     }
