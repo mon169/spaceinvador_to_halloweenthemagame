@@ -22,6 +22,10 @@ import org.newdawn.spaceinvaders.entity.ShotEntity;
 import org.newdawn.spaceinvaders.shop.Shop;
 import org.newdawn.spaceinvaders.shop.Item;
 
+//배경추가
+import org.newdawn.spaceinvaders.Sprite;
+import org.newdawn.spaceinvaders.SpriteStore;
+
 /**
  * The main hook of our game. This class with both act as a manager
  * for the display and central mediator for the game logic. 
@@ -83,7 +87,16 @@ public class Game extends Canvas
 	private ShipEntity ship;
 	private Shop shop;
 	private boolean shopOpen = false;
-	
+	//background
+
+	private Sprite bg;
+	private double bgY = 0;          // 세로 스크롤 오프셋
+	private double bgSpeed = 30; // px/s (0이면 고정 배경)
+
+
+	private Sprite startBtn;
+	private double startBtnScale = 0.75;
+
 	public ShipEntity getShip() {
 		return ship;
 	}
@@ -133,6 +146,12 @@ public class Game extends Canvas
 		createBufferStrategy(2);
 		strategy = getBufferStrategy();
 		
+		// === BG load ===
+		bg = SpriteStore.get().getSprite("bg/background.png");
+
+		// === Start button load ===
+		startBtn = SpriteStore.get().getSprite("sprites/startbutton.png");
+
 		// initialise the entities in our game so there's something
 		// to see at startup
 		initEntities();
@@ -184,23 +203,28 @@ public class Game extends Canvas
 	private void initEntities(ShipEntity oldShip) {
 		// create the player ship and place it roughly in the center of the screen
 		if (oldShip == null) {
-			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+			ship = new ShipEntity(this,"sprites/ship.png",370,550);
 		} else {
 			// 이전 우주선의 상태를 새 우주선에 복사
-			ship = new ShipEntity(this,"sprites/ship.gif",370,550);
+			ship = new ShipEntity(this,"sprites/ship.png",370,550);
 			ship.copyStateFrom(oldShip);
 		}
 		entities.add(ship);
 		
 		// create a block of aliens (5 rows, by 12 aliens, spaced evenly)
 		alienCount = 0;
-		for (int row=0;row<5;row++) {
-			for (int x=0;x<12;x++) {
-				Entity alien = new AlienEntity(this,100+(x*50),(50)+row*30);
-				entities.add(alien);
-				alienCount++;
+		for (int row = 0; row < 5; row++) {
+			for (int x = 0; x < 10; x++) { // 12마리는 너무 빽빽하니 10마리 추천
+					// 가로 간격: 외계인 width(35) + 여유(20~30) → 약 60~65
+					// 세로 간격: 외계인 height(55) + 여유(10) → 약 65
+					int alienX = 100 + (x * 50);
+					int alienY = 50 + (row * 50);
+	
+					Entity alien = new AlienEntity(this, alienX, alienY);
+					entities.add(alien);
+					alienCount++;
 			}
-		}
+	}
 	}
 	
 	/**
@@ -246,7 +270,21 @@ public class Game extends Canvas
 	public void addEntity(Entity entity) {
 		entities.add(entity);
 	}
+	
+	private void drawBgCover(Graphics2D g, Sprite s, int offY) {
+    if (s == null) return;
+    int iw = s.getWidth(), ih = s.getHeight();
+    double scale = Math.max(800.0/iw, 600.0/ih); // 화면을 꽉 채우는 스케일
+    int dw = (int)Math.round(iw * scale);
+    int dh = (int)Math.round(ih * scale);
+    int dx = (800 - dw) / 2;
 
+    // 세로 스크롤
+    int sy = - (offY % dh);
+    s.drawScaled(g, dx, sy,    dw, dh);
+    s.drawScaled(g, dx, sy+dh, dw, dh);
+}
+	
 
 
 	private void updateAlienCount() {
@@ -304,6 +342,12 @@ public class Game extends Canvas
 			long delta = SystemTimer.getTime() - lastLoopTime;
 			lastLoopTime = SystemTimer.getTime();
 
+			// === BG offset update (single) ===
+			double dt = delta / 1000.0;
+			bgY = (bgY + bgSpeed * dt);
+			int h = (bg != null ? bg.getHeight() : 600);
+			bgY %= h;  // 랩핑
+
 			// update the frame counter
 			lastFpsTime += delta;
 			fps++;
@@ -319,8 +363,11 @@ public class Game extends Canvas
 			// Get hold of a graphics context for the accelerated 
 			// surface and blank it out
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
-			g.setColor(Color.black);
-			g.fillRect(0,0,800,600);
+			//g.setColor(Color.black);
+			//g.fillRect(0,0,800,600);
+
+			// === draw background first (contain) ===
+			drawBgCover(g, bg, (int)bgY);
 			
 			// cycle round asking each entity to move itself
 			if (!waitingForKeyPress) {
@@ -460,13 +507,32 @@ public class Game extends Canvas
 					g.fillRect(0, 0, 800, 600);
 					g.setColor(Color.white);
 					
-					String title = "SPACE INVADERS";
-					g.drawString(title, (800-g.getFontMetrics().stringWidth(title))/2, 250);
-					String startMessage = "Press any key to start";
-					g.drawString(startMessage, (800-g.getFontMetrics().stringWidth(startMessage))/2, 300);
-					
-					String controls = "Controls: ← → to move, SPACE to fire";
-					g.drawString(controls, (800-g.getFontMetrics().stringWidth(controls))/2, 350);
+					// 게임 시작 화면
+					// (배경은 이미 drawBgContainTiledX(...)로 그려지고 있음)
+
+					// 버튼 크기 계산
+					// 버튼 최대 크기(원하는 값으로 조절)
+					int MAX_BTN_W = 700;   // 가로 최대
+					int MAX_BTN_H = 500;   // 세로 최대
+
+					int bw = startBtn.getWidth();
+					int bh = startBtn.getHeight();
+
+					// 화면 기준으로 과도하게 커지지 않도록 자동 스케일
+					double scale = Math.min(MAX_BTN_W / (double)bw, MAX_BTN_H / (double)bh);
+					int dw = (int)Math.round(bw * scale);
+					int dh = (int)Math.round(bh * scale);
+
+					// 중앙 ‘살짝 아래’
+					int btnX = (800 - dw) / 2;
+					int btnY = (600 - dh) / 2 + 40;
+
+					startBtn.drawScaled(g, btnX, btnY, dw, dh);
+
+					// 보조 안내
+					g.setColor(Color.white);
+					String tip = "Press any key to start";
+					g.drawString(tip, (800 - g.getFontMetrics().stringWidth(tip)) / 2, btnY + dh + 24);
 				}
 			}
 			
@@ -527,144 +593,135 @@ public class Game extends Canvas
 		}
 	}
 	
+/**
+ * A class to handle keyboard input from the user. The class
+ * handles both dynamic input during game play, i.e. left/right 
+ * and shoot, and more static type input (i.e. press any key to
+ * continue, shop interaction, restart, etc.)
+ * 
+ * @author Kevin Glass (modified)
+ */
+private class KeyInputHandler extends KeyAdapter {
+	/** The number of key presses we've had while waiting for an "any key" press */
+	private int pressCount = 1;
+
 	/**
-	 * A class to handle keyboard input from the user. The class
-	 * handles both dynamic input during game play, i.e. left/right 
-	 * and shoot, and more static type input (i.e. press any key to
-	 * continue)
-	 * 
-	 * This has been implemented as an inner class more through 
-	 * habbit then anything else. Its perfectly normal to implement
-	 * this as seperate class if slight less convienient.
-	 * 
-	 * @author Kevin Glass
+	 * Notification from AWT that a key has been pressed. Note that
+	 * a key being pressed is equal to being pushed down but *NOT*
+	 * released. Thats where keyTyped() comes in.
+	 *
+	 * @param e The details of the key that was pressed 
 	 */
-	private class KeyInputHandler extends KeyAdapter {
-		/** The number of key presses we've had while waiting for an "any key" press */
-		private int pressCount = 1;
-		
-		/**
-		 * Notification from AWT that a key has been pressed. Note that
-		 * a key being pressed is equal to being pushed down but *NOT*
-		 * released. Thats where keyTyped() comes in.
-		 *
-		 * @param e The details of the key that was pressed 
-		 */
-		public void keyPressed(KeyEvent e) {
+	public void keyPressed(KeyEvent e) {
 			// if we're waiting for an "any key" typed then we don't 
 			// want to do anything with just a "press"
 			if (waitingForKeyPress) {
-				return;
+					return;
 			}
-			
-			
+
 			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = true;
+					leftPressed = true;
 			}
 			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = true;
+					rightPressed = true;
 			}
 			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = true;
+					firePressed = true;
 			}
 			if (e.getKeyCode() == KeyEvent.VK_B) {
-				ship.useBomb();
+					ship.useBomb();
 			}
 			if (e.getKeyCode() == KeyEvent.VK_I) {
-				ship.useIceWeapon();
+					ship.useIceWeapon();
 			}
-		} 
-		
-		/**
-		 * Notification from AWT that a key has been released.
-		 *
-		 * @param e The details of the key that was released 
-		 */
-		public void keyReleased(KeyEvent e) {
+	} 
+
+	/**
+	 * Notification from AWT that a key has been released.
+	 *
+	 * @param e The details of the key that was released 
+	 */
+	public void keyReleased(KeyEvent e) {
 			// if we're waiting for an "any key" typed then we don't 
 			// want to do anything with just a "released"
 			if (waitingForKeyPress) {
-				return;
+					return;
 			}
-			
+
 			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = false;
+					leftPressed = false;
 			}
 			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = false;
+					rightPressed = false;
 			}
 			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = false;
+					firePressed = false;
 			}
-		}
+	}
 
-		/**
-		 * Notification from AWT that a key has been typed. Note that
-		 * typing a key means to both press and then release it.
-		 *
-		 * @param e The details of the key that was typed. 
-		 */
-		public void keyTyped(KeyEvent e) {
-			// if we're waiting for a "any key" type then
-			// check if we've recieved any recently. We may
-			// have had a keyType() event from the user releasing
-			// the shoot or move keys, hence the use of the "pressCount"
-			// counter.
+	/**
+	 * Notification from AWT that a key has been typed. Note that
+	 * typing a key means to both press and then release it.
+	 *
+	 * This is where we handle "meta" inputs:
+	 * - Game start (any key)
+	 * - Shop input (number keys, R, ESC)
+	 * - Game over / clear state (restart, exit)
+	 *
+	 * @param e The details of the key that was typed. 
+	 */
+	public void keyTyped(KeyEvent e) {
 			if (waitingForKeyPress) {
-				if (shopOpen) {
-					// 상점이 열려있을 때는 숫자 키 입력을 처리
-					char keyChar = e.getKeyChar();
-					if (keyChar >= '1' && keyChar <= '9') {
-						int itemIndex = keyChar - '1';
-						shop.purchaseItem(ship, itemIndex);
-					} else if (keyChar == 'r' || keyChar == 'R') {
-						// 다음 스테이지 시작
-						currentStage++; // 여기서 스테이지를 증가
-						waitingForKeyPress = false;
-						startGame();
-					} else if (keyChar == 27) { // ESC 키
-						System.exit(0);
-					}
-				} else if (message.contains("got you") || message.contains("축하합니다")) {
-					// 게임 오버 상태 또는 게임 클리어 상태
-					char keyChar = e.getKeyChar();
-					if (keyChar == 'r' || keyChar == 'R') {
-						if (message.contains("축하합니다")) {
-							// 게임 클리어 후 R키 - 게임 종료
-							System.exit(0);
-						} else {
-							// 게임 오버 후 R키 - 게임 재시작
-							message = "restart";
-							waitingForKeyPress = false;
-							startGame();
-						}
+					if (shopOpen) {
+							// shop input
+							char keyChar = e.getKeyChar();
+							if (keyChar >= '1' && keyChar <= '9') {
+									int itemIndex = keyChar - '1';
+									shop.purchaseItem(ship, itemIndex);
+							} else if (keyChar == 'r' || keyChar == 'R') {
+									currentStage++;
+									waitingForKeyPress = false;
+									startGame();
+							} else if (keyChar == 27) { // ESC
+									System.exit(0);
+							}
+					} else if (message.contains("got you") || message.contains("축하합니다")) {
+							// game over / clear
+							char keyChar = e.getKeyChar();
+							if (keyChar == 'r' || keyChar == 'R') {
+									if (message.contains("축하합니다")) {
+											System.exit(0); // clear → exit
+									} else {
+											message = "restart";
+											waitingForKeyPress = false;
+											startGame();
+									}
+							} else if (pressCount == 1) {
+									// continue after game over
+									if (!message.contains("축하합니다")) {
+											waitingForKeyPress = false;
+											startGame();
+											pressCount = 0;
+									}
+							} else {
+									pressCount++;
+							}
 					} else if (pressCount == 1) {
-						// 게임 계속하기 (게임 오버 상태에서만)
-						if (!message.contains("축하합니다")) {
+							// initial start
 							waitingForKeyPress = false;
 							startGame();
 							pressCount = 0;
-						}
 					} else {
-						pressCount++;
+							pressCount++;
 					}
-				} else if (pressCount == 1) {
-					// 게임 시작
-					waitingForKeyPress = false;
-					startGame();
-					pressCount = 0;
-				} else {
-					pressCount++;
-				}
 			}
-			
-			// ESC 키를 누르면 게임 종료
+
+			// ESC always exits
 			if (e.getKeyChar() == 27) {
-				System.exit(0);
+					System.exit(0);
 			}
-		}
 	}
-	
+}
 	/**
 	 * The entry point into the game. We'll simply create an
 	 * instance of class which will start the display and game

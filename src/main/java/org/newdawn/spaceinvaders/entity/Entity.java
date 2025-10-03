@@ -137,11 +137,25 @@ public abstract class Entity {
 	 * @return True if the entities collide with each other
 	 */
 	public boolean collidesWith(Entity other) {
-		me.setBounds((int) x,(int) y,sprite.getWidth(),sprite.getHeight());
-		him.setBounds((int) other.x,(int) other.y,other.sprite.getWidth(),other.sprite.getHeight());
+    int marginX = 5; // 좌우 여백
+    int marginY = 5; // 상하 여백
 
-		return me.intersects(him);
-	}
+    me.setBounds(
+        (int) x + marginX,
+        (int) y + marginY,
+        sprite.getWidth() - marginX * 2,
+        sprite.getHeight() - marginY * 2
+    );
+
+    him.setBounds(
+        (int) other.x + marginX,
+        (int) other.y + marginY,
+        other.sprite.getWidth() - marginX * 2,
+        other.sprite.getHeight() - marginY * 2
+    );
+
+    return me.intersects(him);
+}
 	
 	/**
 	 * Notification that this entity collided with another.
