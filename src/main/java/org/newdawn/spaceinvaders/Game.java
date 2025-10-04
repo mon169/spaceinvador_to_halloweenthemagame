@@ -70,7 +70,7 @@ public class Game extends Canvas
 	
 	// 스테이지별 특성을 위한 변수들
 	private long stageStartTime = 0; // 스테이지 시작 시간
-	private final int BASE_TIME_LIMIT = 60; // 기본 60초 시간 제한
+	private final int BASE_TIME_LIMIT = 90; // 기본 90초 시간 제한
 	private boolean itemsAllowed = true; // 아이템 사용 가능 여부
 	private int lifeLimit = 0; // 생명 제한 (0은 제한 없음)
 	
@@ -682,22 +682,9 @@ public class Game extends Canvas
 
 					String title = "SPACE INVADERS";
 					g.drawString(title, (800-g.getFontMetrics().stringWidth(title))/2, 200);
-					String startMessage = "Press any key to start";
-					g.drawString(startMessage, (800-g.getFontMetrics().stringWidth(startMessage))/2, 250);
-					
+
 					String controls = "Controls: ← → to move, SPACE to fire";
-					g.drawString(controls, (800-g.getFontMetrics().stringWidth(controls))/2, 300);
-					
-					// 추가된 컨트롤 정보
-					String specialWeapons = "B: 폭탄 사용, I: 얼음 무기 사용, S: 방어막 활성화";
-					g.drawString(specialWeapons, (800-g.getFontMetrics().stringWidth(specialWeapons))/2, 330);
-					
-					// 스테이지별 특성 설명
-					g.setColor(Color.yellow);
-					g.drawString("[ 게임 정보 ]", (800-g.getFontMetrics().stringWidth("[ 게임 정보 ]"))/2, 380);
-					g.setColor(Color.white);
-					g.drawString("모든 스테이지: 시간 제한(스테이지마다 10초씩 증가), 적들이 총알을 발사", (800-g.getFontMetrics().stringWidth("모든 스테이지: 시간 제한(스테이지마다 10초씩 증가), 적들이 총알을 발사"))/2, 410);
-					g.drawString("스테이지 1: 기본 모드", (800-g.getFontMetrics().stringWidth("스테이지 1: 기본 모드"))/2, 430);
+					g.drawString(controls, (800-g.getFontMetrics().stringWidth(controls))/2, 500);
 				}
 			}
 			
@@ -746,10 +733,7 @@ public class Game extends Canvas
 				
 				// 스테이지별 특성 표시
 				int stageInfoY = 30;
-				if (currentStage == 2) {
-					g.drawString("주의: 적의 총알 속도 20% 증가", 500, stageInfoY);
-					stageInfoY += 20;
-				} else if (currentStage == 3) {
+				if (currentStage == 3) {
 					g.drawString("주의: 체력 " + lifeLimit + " 이하시 게임오버", 500, stageInfoY);
 					stageInfoY += 20;
 				} else if (currentStage == 5) {

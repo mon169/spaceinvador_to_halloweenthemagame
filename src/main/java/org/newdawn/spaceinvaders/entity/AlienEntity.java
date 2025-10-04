@@ -118,56 +118,56 @@ public class AlienEntity extends Entity {
      * 이 메소드는 Game 클래스에서 호출되어야 합니다.
      */
     public void fireShot() {
-        // 스테이지/상태에 따라 공격 가능 여부 체크
         if (!canAttack) {
             return;
         }
+        // 모든 스테이지에서 적이 공격하도록 변경
 
-        // 스프라이트가 아직 없을 때 NPE 방지 (개발 중 안전장치)
-        int w = (sprite != null ? sprite.getWidth()  : 32);
-        int h = (sprite != null ? sprite.getHeight() : 32);
-
-        // 총알이 Alien의 중앙(아래쪽)에서 나오도록 좌표 설정
-        int centerX = (int)(getX() + w / 2.0);
-        int centerY = (int)(getY() + h);
-
-        // 스테이지별 발사 패턴
+        double bulletSpeed;
         int stage = game.getCurrentStage();
         int bulletCount = 1;
-        double bulletSpeed = 200; // 기본 속도
-
-        // 스테이지 2: 속도 20% 증가
-        if (stage == 2) {
-            bulletSpeed = 240;
-        }
-        // 스테이지 3,4,5… : 탄수 증가
+        
+        // 스테이지별 총알 수 설정
         if (stage == 3) bulletCount = 3;
         else if (stage == 4) bulletCount = 5;
         else if (stage >= 5) bulletCount = 7;
+        
+        // 스테이지별 총알 속도 설정
+        // 스테이지 2에서만 20% 증가, 나머지는 기본 속도
+        if (stage == 2) {
+            bulletSpeed = 240; // 200 * 1.2 = 240 (20% 증가)
+        } else {
+            bulletSpeed = 200; // 기본 속도
+        }
+        
+        int centerX = (int)(getX() + sprite.getWidth() / 2.0);
+        int centerY = (int)(getY() + sprite.getHeight() / 2.0);
 
         if (bulletCount == 1) {
-            // 단일 탄: 직하향
-            EnemyShotEntity shot = new EnemyShotEntity(
+            // 단일 총알: 아래 방향
+            org.newdawn.spaceinvaders.entity.EnemyShotEntity enemyShot = new org.newdawn.spaceinvaders.entity.EnemyShotEntity(
                 game, "sprites/shot.png", centerX, centerY, 0, bulletSpeed
             );
-            game.addEntity(shot);
-            return;
-        }
-
-        // 다중 탄: 퍼지는 각도
-        double spreadDeg = 40.0;                 // 총 퍼짐 각도(도)
-        double startDeg  = -spreadDeg / 2.0;     // 좌측 시작 각도
-        double stepDeg   = spreadDeg / (bulletCount - 1);
-
-        for (int i = 0; i < bulletCount; i++) {
-            double angleRad = Math.toRadians(startDeg + stepDeg * i);
-            double vx = bulletSpeed * Math.sin(angleRad); // 좌우
-            double vy = bulletSpeed * Math.cos(angleRad); // 아래
-
-            EnemyShotEntity shot = new EnemyShotEntity(
-                game, "sprites/shot.png", centerX, centerY, vx, vy
-            );
-            game.addEntity(shot);
+            game.addEntity(enemyShot);
+        } else {
+            // 다중 총알: 퍼지는 각도로 발사
+            double spreadAngle = 40; // 총알 퍼짐 각도(도)
+            double startAngle = -spreadAngle/2;
+            double angleStep = spreadAngle/(bulletCount-1);
+            
+            for (int i = 0; i < bulletCount; i++) {
+                // 각도를 라디안으로 변환 (0도는 아래 방향)
+                double angle = Math.toRadians(startAngle + angleStep * i);
+                
+                // sin은 X축 방향 (좌우), cos은 Y축 방향 (아래) 속도
+                double dx = bulletSpeed * Math.sin(angle);
+                double dy = bulletSpeed * Math.cos(angle);
+                
+                org.newdawn.spaceinvaders.entity.EnemyShotEntity enemyShot = new org.newdawn.spaceinvaders.entity.EnemyShotEntity(
+                    game, "sprites/shot.png", centerX, centerY, dx, dy
+                );
+                game.addEntity(enemyShot);
+            }
         }
     }
 
