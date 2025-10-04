@@ -312,25 +312,14 @@ public class Game extends Canvas
 		if (currentStage >= 4) {
 			int obstacleRows = (currentStage >= 5) ? 2 : 1;
 			int panelWidth = 800;
-			int obstacleWidth = 50; // 장애물 sprite 가로 크기 기준 (간격 늘림)
-			int obstacleCount = panelWidth / obstacleWidth; // 더 적은 수의 장애물 생성
-			int startX = 25; // 양쪽 여백 추가
-			
+			int obstacleWidth = 32; // 장애물 sprite 가로 크기(정확히 맞추기)
+			int obstacleCount = panelWidth / obstacleWidth;
+			int startX = 0;
 			for (int row=0; row<obstacleRows; row++) {
 				for (int x=0; x<obstacleCount; x++) {
 					int obsX = startX + (x*obstacleWidth);
-					int obsY = 380 + (row*40); // 장애물 더 위로 배치
+					int obsY = 380 + (row*40); // 장애물 위치
 					ObstacleEntity obstacle = new ObstacleEntity(this, obsX, obsY);
-					
-					// 스테이지 5에서는 장애물을 더 강화 (초기 단계를 높게 설정)
-					if (currentStage >= 5) {
-						// 장애물을 강화하는 코드
-						// ObstacleEntity를 직접 수정하지 않고, 스테이지 5에서는 더 많은 장애물 배치
-						if (Math.random() < 0.3) { // 30% 확률로 장애물 추가 배치
-							entities.add(new ObstacleEntity(this, obsX+15, obsY-10));
-						}
-					}
-					
 					entities.add(obstacle);
 				}
 			}
