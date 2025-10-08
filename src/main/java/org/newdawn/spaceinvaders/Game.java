@@ -204,7 +204,7 @@ public class Game extends Canvas
 
 		// initialise the entities in our game so there's something
 		// to see at startup
-		initEntities();
+		//initEntities();
 		shop = new Shop(); 
 	}
 	
@@ -495,11 +495,12 @@ public class Game extends Canvas
 
 			
 			
-			// cycle round drawing all the entities we have in the game
-			for (int i=0;i<entities.size();i++) {
-				Entity entity = (Entity) entities.get(i);
-				
-				entity.draw(g);
+			// === 엔티티 그리기 ===
+			if (!waitingForKeyPress) {
+				for (int i=0;i<entities.size();i++) {
+						Entity entity = entities.get(i);
+						entity.draw(g);
+				}
 			}
 			
 			// brute force collisions, compare every entity against
@@ -654,8 +655,8 @@ public class Game extends Canvas
 					g.drawString(pressAnyKey, (800-g.getFontMetrics().stringWidth(pressAnyKey))/2, 300);
 				} else {
 					// 게임 시작 화면
-					g.setColor(new Color(0, 0, 0, 200));
-					g.fillRect(0, 0, 800, 600);
+					//g.setColor(new Color(0, 0, 0, 200));
+					//g.fillRect(0, 0, 800, 600);
 					g.setColor(Color.white);
 					
 					// 게임 시작 화면
