@@ -1,210 +1,208 @@
 package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.SpriteStore;
+import java.util.Random;
 
-/**
- * An entity which represents one of our space invader aliens.
- * 
- * @author Kevin Glass (modified)
- */
 public class AlienEntity extends Entity {
-    /** The speed at which the alien moves horizontally */
-    private double moveSpeed = 75;
-    /** The game in which the entity exists */
-    private Game game;
-    /** The alien's current health */
+    protected final Game game;
+    private final Random random = new Random();
+
+    protected double moveSpeed;
     private int health = 1;
-    /** Frozen 상태 여부 */
     private boolean frozen = false;
-    /** 얼음 효과가 풀리는 시간 */
     private long freezeEndTime = 0;
-    /** 공격 가능 여부 (스테이지별로 다르게 적용 가능) */
     private boolean canAttack = true;
 
-    /**
-     * Create a new alien entity
-     * 
-     * @param game The game in which this entity is being created
-     * @param x    The initial x location of this alien
-     * @param y    The initial y location of this alien
-     */
+    private boolean movingRight = random.nextBoolean();
+    private boolean movingDown = random.nextBoolean();
+    private long lastMoveChange = 0;
+    private long moveChangeDelay = 1000 + random.nextInt(2000);
+
+    private long lastFrameChange = 0;
+    private static final int FRAME_DELAY = 120;
+    private static final int MAX_FRAMES = 7;
+    private String currentDir = "r";
+    private String currentSpriteBase;
+
+    private long lastAttackTime;
+    private long attackDelay;
+    protected String shotType = "shot"; // 기본
+
+    // ✅ 기존 기본 생성자
     public AlienEntity(Game game, int x, int y) {
-        // choose a random sprite among 3 monsters
-        super(getRandomSprite(), x, y);
+        super("sprites/monster1r.png", x, y);
         this.game = game;
-        dx = -moveSpeed; // start moving left
+
+        int stage = 1;
+        try { stage = game.getCurrentStage(); } catch (Exception ignored) {}
+        if (stage == 1) moveSpeed = 40;
+        else if (stage == 2) moveSpeed = 60;
+        else if (stage == 3) moveSpeed = 80;
+        else moveSpeed = 100;
+
+        lastAttackTime = System.currentTimeMillis() + random.nextInt(2000);
+        attackDelay = 1500 + random.nextInt(2000);
+
+        int monsterId = 1 + random.nextInt(3);
+        this.currentSpriteBase = "monster" + monsterId;
+        this.sprite = SpriteStore.get().getSprite("sprites/" + currentSpriteBase + currentDir + ".png");
+
+        dx = movingRight ? moveSpeed : -moveSpeed;
+        dy = movingDown ? moveSpeed : -moveSpeed;
     }
 
-    /**
-     * Pick one of 3 sprites randomly when alien is created
-     * 
-     * @return The path of the sprite image
-     */
-    private static String getRandomSprite() {
-        int rand = (int) (Math.random() * 3); // 0~2
-        if (rand == 0) return "sprites/monster1.png";
-        if (rand == 1) return "sprites/monster2.png";
-        return "sprites/monster3.png";
+    // ✅ 새 생성자 (보스용) : Game, String, int, int
+    public AlienEntity(Game game, String spritePath, int x, int y) {
+        super(spritePath, x, y);
+        this.game = game;
+
+        int stage = 1;
+        try { stage = game.getCurrentStage(); } catch (Exception ignored) {}
+        if (stage == 1) moveSpeed = 40;
+        else if (stage == 2) moveSpeed = 60;
+        else if (stage == 3) moveSpeed = 80;
+        else moveSpeed = 100;
+
+        lastAttackTime = System.currentTimeMillis() + random.nextInt(2000);
+        attackDelay = 1500 + random.nextInt(2000);
+
+        this.currentSpriteBase = spritePath; // 보스는 직접 지정된 스프라이트 사용
+        this.sprite = SpriteStore.get().getSprite(spritePath);
+
+        dx = movingRight ? moveSpeed : -moveSpeed;
+        dy = movingDown ? moveSpeed : -moveSpeed;
     }
 
-    /**
-     * Freeze the alien for a given duration (ms)
-     * 
-     * @param duration Time in milliseconds to freeze
-     */
-    public void freeze(int duration) {
-        frozen = true;
-        freezeEndTime = System.currentTimeMillis() + duration;
-        dx = 0;  // 움직임 중지
-    }
+    public String getShotType() { return shotType; }
+    public void setShotType(String type) { this.shotType = type; }
 
-    /**
-     * Request that this alien moved based on time elapsed
-     * 
-     * @param delta The time that has elapsed since last move
-     */
     @Override
     public void move(long delta) {
-        // 얼어있는지 확인하고 시간이 지났으면 해제
         if (frozen && System.currentTimeMillis() > freezeEndTime) {
             frozen = false;
-            dx = (dx >= 0) ? moveSpeed : -moveSpeed;
+            dx = movingRight ? moveSpeed : -moveSpeed;
+            dy = movingDown ? moveSpeed : -moveSpeed;
+        }
+        if (!frozen) super.move(delta);
+
+        if (x <= 10) { movingRight = true; dx = moveSpeed; updateDirection(); }
+        else if (x >= 760) { movingRight = false; dx = -moveSpeed; updateDirection(); }
+        if (y <= 40) { movingDown = true; dy = moveSpeed; }
+        else if (y >= 520) { movingDown = false; dy = -moveSpeed; }
+
+        long now = System.currentTimeMillis();
+        if (now - lastMoveChange > moveChangeDelay) {
+            lastMoveChange = now;
+            moveChangeDelay = 1000 + random.nextInt(2000);
+            if (random.nextBoolean()) movingRight = !movingRight;
+            if (random.nextBoolean()) movingDown = !movingDown;
+            dx = movingRight ? moveSpeed : -moveSpeed;
+            dy = movingDown ? moveSpeed : -moveSpeed;
+            updateDirection();
         }
 
-        // 화면 경계 체크 (스프라이트 실제 폭 사용)
-        int w = (sprite != null ? sprite.getWidth() : 35);
-
-        // if we have reached the left hand side of the screen and
-        // are moving left then request a logic update 
-        if ((dx < 0) && (x <= 10)) {
-            x = 10;
-            game.updateLogic();
-        }
-        // and vice versa, if we have reached the right hand side of 
-        // the screen and are moving right, request a logic update
-        if ((dx > 0) && (x >= 800 - w - 10)) {
-            x = 800 - w - 10;
-            game.updateLogic();
+        if (now - lastFrameChange > FRAME_DELAY) {
+            lastFrameChange = now;
+            updateSpriteFrame();
         }
 
-        // proceed with normal move (unless frozen)
-        if (!frozen) {
-            super.move(delta);
-        }
-    }
-
-    /**
-     * Update the game logic related to aliens
-     */
-    @Override
-    public void doLogic() {
-        // swap over horizontal movement and move down the screen a bit
-        dx = -dx;
-        y += 10;
-
-        // if dx somehow became 0, restore it
-        if (dx == 0) {
-            dx = (Math.random() < 0.5 ? -1 : 1) * moveSpeed;
-        }
-
-        // if we've reached the bottom of the screen then the player dies
-        if (y > 570) {
-            game.notifyDeath();
-        }
-    }
-
-    /**
-     * 외계인이 총알을 발사하는 로직을 담당합니다.
-     * 이 메소드는 Game 클래스에서 호출되어야 합니다.
-     */
-    public void fireShot() {
-        if (!canAttack) {
-            return;
-        }
-        // 모든 스테이지에서 적이 공격하도록 변경
-
-        double bulletSpeed;
-        int stage = game.getCurrentStage();
-        int bulletCount = 1;
-        
-        // 스테이지별 총알 수 설정
-        if (stage == 3) bulletCount = 3;
-        else if (stage == 4) bulletCount = 5;
-        else if (stage >= 5) bulletCount = 7;
-        
-        // 스테이지별 총알 속도 설정
-        // 스테이지 2에서만 20% 증가, 나머지는 기본 속도
-        if (stage == 2) {
-            bulletSpeed = 240; // 200 * 1.2 = 240 (20% 증가)
-        } else {
-            bulletSpeed = 200; // 기본 속도
-        }
-        
-        int centerX = (int)(getX() + sprite.getWidth() / 2.0);
-        int centerY = (int)(getY() + sprite.getHeight() / 2.0);
-
-        if (bulletCount == 1) {
-            // 단일 총알: 아래 방향
-            org.newdawn.spaceinvaders.entity.EnemyShotEntity enemyShot = new org.newdawn.spaceinvaders.entity.EnemyShotEntity(
-                game, "sprites/shot.png", centerX, centerY, 0, bulletSpeed
-            );
-            game.addEntity(enemyShot);
-        } else {
-            // 다중 총알: 퍼지는 각도로 발사
-            double spreadAngle = 40; // 총알 퍼짐 각도(도)
-            double startAngle = -spreadAngle/2;
-            double angleStep = spreadAngle/(bulletCount-1);
-            
-            for (int i = 0; i < bulletCount; i++) {
-                // 각도를 라디안으로 변환 (0도는 아래 방향)
-                double angle = Math.toRadians(startAngle + angleStep * i);
-                
-                // sin은 X축 방향 (좌우), cos은 Y축 방향 (아래) 속도
-                double dx = bulletSpeed * Math.sin(angle);
-                double dy = bulletSpeed * Math.cos(angle);
-                
-                org.newdawn.spaceinvaders.entity.EnemyShotEntity enemyShot = new org.newdawn.spaceinvaders.entity.EnemyShotEntity(
-                    game, "sprites/shot.png", centerX, centerY, dx, dy
-                );
-                game.addEntity(enemyShot);
+        if (canAttack && now - lastAttackTime > attackDelay) {
+            lastAttackTime = now;
+            attackDelay = 1500 + random.nextInt(2000);
+            if (random.nextDouble() < 0.6) {
+                fireShot();
             }
         }
     }
 
-    /**
-     * Take damage from a hit
-     * 
-     * @param damage The amount of damage to take
-     * @return true if the alien died from this damage, false otherwise
-     */
+    private void updateDirection() { currentDir = movingRight ? "r" : "l"; }
+
+    private void updateSpriteFrame() {
+        String path = "sprites/" + currentSpriteBase + currentDir + ".png";
+        this.sprite = SpriteStore.get().getSprite(path);
+    }
+
+    /** 🎯 발사 로직 (owner 설정 포함) */
+    public void fireShot() {
+        int startX = getX() + sprite.getWidth() / 2;
+        int startY = getY() + sprite.getHeight() / 2;
+
+        ShipEntity player = game.getShip();
+        FortressEntity fortress = game.getFortress();
+
+        double targetX = player.getX() + player.getWidth() / 2.0;
+        double targetY = player.getY() + player.getHeight() / 2.0;
+
+        double playerDist = Math.hypot(targetX - startX, targetY - startY);
+        if (fortress != null) {
+            double fortX = fortress.getX() + 40;
+            double fortY = fortress.getY() + 40;
+            double fortDist = Math.hypot(fortX - startX, fortY - startY);
+            if (fortDist < playerDist) {
+                targetX = fortX;
+                targetY = fortY;
+            }
+        }
+
+        double ddx = targetX - startX;
+        double ddy = targetY - startY;
+        double len = Math.sqrt(ddx * ddx + ddy * ddy);
+        if (len == 0) return;
+        ddx /= len; ddy /= len;
+
+        double speed;
+        String spritePath;
+        if ("iceshot".equals(shotType)) {
+            speed = 200;
+            spritePath = "sprites/blueshot-removebg-preview.png";
+        } else if ("bombshot".equals(shotType)) {
+            speed = 250;
+            spritePath = "sprites/bombshot-removebg-preview.png";
+        } else {
+            speed = 180;
+            spritePath = "sprites/shot-removebg-preview.png";
+        }
+
+        double vx = ddx * speed;
+        double vy = ddy * speed;
+
+        // ✅ owner(this) 전달해서 자기탄 무시 가능하게
+        EnemyShotEntity shot = new EnemyShotEntity(game, spritePath, startX, startY, vx, vy, shotType, this);
+        game.addEntity(shot);
+    }
+
+    public void freeze(int duration) {
+        frozen = true;
+        freezeEndTime = System.currentTimeMillis() + duration;
+        dx = 0; dy = 0;
+    }
+
     public boolean takeDamage(int damage) {
         health -= damage;
         return health <= 0;
     }
 
-    /**
-     * Notification that this alien has collided with another entity
-     * 
-     * @param other The other entity
-     */
     @Override
     public void collidedWith(Entity other) {
-        // ShipEntity와 충돌 시 유저에게 데미지
         if (other instanceof ShipEntity) {
             ShipEntity ship = (ShipEntity) other;
-            ship.takeDamage(10); // 외계인 공격력 10
-            game.removeEntity(this); // 외계인 제거
+            ship.takeDamage(10);
+            game.removeEntity(this);
         }
-        // 그 외 충돌은 기존대로 무시
     }
 
-    /** 외부에서 공격 가능 여부를 제어할 수 있도록 setter */
-    public void setCanAttack(boolean canAttack) {
-        this.canAttack = canAttack;
-    }
+    @Override
+    public void doLogic() { }
 
-    /** 공격 가능 여부를 반환 */
-    public boolean canAttack() {
-        return canAttack;
+    @Override
+    public void draw(java.awt.Graphics g) {
+        if (sprite == null) return;
+        double scale = 0.5;
+        int newW = (int) (sprite.getWidth() * scale);
+        int newH = (int) (sprite.getHeight() * scale);
+        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g;
+        java.awt.Image scaled = sprite.getImage().getScaledInstance(newW, newH, java.awt.Image.SCALE_SMOOTH);
+        g2.drawImage(scaled, (int) x, (int) y, null);
     }
 }
