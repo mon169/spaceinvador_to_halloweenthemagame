@@ -74,8 +74,8 @@ public class Shop {
 
         // 폭탄 아이템 추가
         itemsForSale.add(new Item(
-            "폭탄",
-            "광역 공격을 할 수 있는 폭탄을 얻습니다(B키로 사용)",
+            "막대 사탕",
+            "광역 공격을 할 수 있는 사탕폭탄을 얻습니다(B키로 사용)",
             200
         ) {
             @Override
@@ -86,7 +86,7 @@ public class Shop {
         
         // 얼음 공격 아이템 추가
         itemsForSale.add(new Item(
-            "얼음 공격",
+            "얼음 사탕",
             "적을 잠시 얼릴 수 있는 무기를 얻습니다(I키로 사용)",
             150
         ) {
