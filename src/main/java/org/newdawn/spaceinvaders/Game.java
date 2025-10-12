@@ -32,6 +32,9 @@ import org.newdawn.spaceinvaders.entity.ObstacleEntity;
 import org.newdawn.spaceinvaders.shop.Shop;
 import org.newdawn.spaceinvaders.shop.Item;
 
+//sound
+import org.newdawn.spaceinvaders.sound.SoundEffect;
+
 /**
  * The main hook of our game. This class with both act as a manager
  * for the display and central mediator for the game logic. 
@@ -83,6 +86,12 @@ public class Game extends Canvas
 	
 	private boolean bossSpawned = false;
 
+	// --- 사운드 ---
+	private SoundEffect startBgm;
+	private boolean startBgmPlaying = false;
+	private SoundEffect gameBgm;
+	private boolean gameBgmPlaying = false;
+	private SoundEffect clickSfx;
 
 	public int getCurrentStage() {
         return currentStage;
@@ -173,6 +182,16 @@ public class Game extends Canvas
 		JPanel panel = (JPanel) container.getContentPane();
 		panel.setPreferredSize(new Dimension(800,600));
 		panel.setLayout(null);
+
+		container.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+					try {
+							if (startBgm != null) startBgm.stop();
+					} finally {
+							System.exit(0);
+					}
+			}
+	});
 		
 		// setup our canvas size and put it into the content of the frame
 		setBounds(0,0,800,600);
@@ -212,6 +231,16 @@ public class Game extends Canvas
 
 		// === Start button load ===
 		startBtn = SpriteStore.get().getSprite("sprites/startbutton.png");
+
+		// === Sound load === 🎵
+	try {
+		startBgm = new SoundEffect("src/main/resources/sounds/start_bgm.wav");
+		gameBgm = new SoundEffect("src/main/resources/sounds/game_bgm.wav");
+		clickSfx = new SoundEffect("src/main/resources/sounds/click.wav");
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+
 
 		// initialise the entities in our game so there's something
 		// to see at startup
@@ -379,12 +408,22 @@ private void initEntities(ShipEntity oldShip) {
 	public void notifyFortressDestroyed() {
     message = "요새가 파괴되었습니다! 게임 오버!";
     waitingForKeyPress = true;
+		 // 🎵 BGM 정지 처리
+		 if (gameBgm != null) gameBgm.stop();
+		 if (startBgm != null) startBgm.stop();
+		 gameBgmPlaying = false;
+		 startBgmPlaying = false;
 	}
 
 
 	public void notifyDeath() {
 		message = "Oh no! They got you, try again?";
 		waitingForKeyPress = true;
+		 // 🎵 BGM 정지 처리
+		 if (gameBgm != null) gameBgm.stop();
+		 if (startBgm != null) startBgm.stop();
+		 gameBgmPlaying = false;
+		 startBgmPlaying = false;
 	}
 	
 	/**
@@ -395,6 +434,11 @@ private void initEntities(ShipEntity oldShip) {
 		message = "축하합니다! 모든 스테이지를 클리어했습니다!\nESC키를 누르면 게임이 종료됩니다.";
 		waitingForKeyPress = true;
 		shopOpen = false;  // 마지막에는 상점을 열지 않음
+		 // 🎵 BGM 정지 처리
+		 if (gameBgm != null) gameBgm.stop();
+		 if (startBgm != null) startBgm.stop();
+		 gameBgmPlaying = false;
+		 startBgmPlaying = false;
 	}
 	
 	/**
@@ -417,6 +461,8 @@ public void bossDefeated() {
         ship.earnMoney(500);
         System.out.println("💰 보상 500 골드 지급!");
     }
+// 🎵 보스 등장 시 BGM 점진 가속 (1.0 → 1.5, 1.2초간)
+		if (gameBgm != null) gameBgm.rampToRate(1.5, 1200, 150);
 
     // ✅ 클리어 처리
     message = "Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
@@ -517,6 +563,26 @@ public void gameLoop() {
             // ✅ 웨이브 및 발사속도 제어 추가
             long elapsedSec = (System.currentTimeMillis() - stageStartTime) / 1000;
 
+						// BGM 상태 스위치 (시작 화면에서만 재생, 상점 화면은 제외하고 싶으면 && !shopOpen 추가)
+						if (waitingForKeyPress && !shopOpen ) {
+							if (startBgm != null && !startBgmPlaying) {
+								gameBgm.stop();          // 혹시 재생 중이면 정지
+								startBgm.loop();              // 시작 화면에서 반복 재생
+								startBgmPlaying = true;
+								gameBgmPlaying = false;
+							}
+						} else {
+							// 게임이 실제로 시작되었을 때
+							if (startBgmPlaying) {
+									startBgm.stop();
+									startBgmPlaying = false;
+							}
+							if (gameBgm != null && !gameBgmPlaying) {
+									gameBgm.loop();          // 게임 중 배경음 반복 재생
+									gameBgmPlaying = true;
+							}
+					}
+
             if (!waitingForKeyPress) {
                 // 적/유저 모두 장애물과 상관없이 공격 가능
                 for (int i = 0; i < entities.size(); i++) {
@@ -564,6 +630,8 @@ public void gameLoop() {
 
 				// === ⚡ Stage 1 보스 프랑켄슈타인 등장 ===
 				if (currentStage == 1 && elapsedSec >= 60 && !bossSpawned) {
+					// BGM 점진 가속 (1.2초 동안 0.15초 간격 = 8스텝)
+    			if (gameBgm != null) gameBgm.rampToRate(1.5, 1200, 150);
 					FrankenBossEntity boss = new FrankenBossEntity(this, 350, 120);
 					entities.add(boss);
 					alienCount++;
@@ -962,6 +1030,7 @@ public void gameLoop() {
 						int itemIndex = keyChar - '1';
 						shop.purchaseItem(ship, itemIndex);
 					} else if (keyChar == 'r' || keyChar == 'R') {
+						if (clickSfx != null) clickSfx.playOnce();
 						// 다음 스테이지 시작
 						currentStage++; // 여기서 스테이지를 증가
 						waitingForKeyPress = false;
@@ -1011,6 +1080,8 @@ public void gameLoop() {
 						pressCount++;
 					}
 				} else if (pressCount == 1) {
+					//클릭음
+					if (clickSfx != null) clickSfx.playOnce();
 					// 게임 시작
 					waitingForKeyPress = false;
 					startGame();
