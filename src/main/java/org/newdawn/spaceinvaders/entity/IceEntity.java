@@ -8,7 +8,7 @@ import org.newdawn.spaceinvaders.Game;
 public class IceEntity extends Entity {
     private Game game;
     private double moveSpeed = -300;
-    private int freezeDuration = 3000; // 3초간 얼림
+    private int freezeDuration = 3000; 
 
     public IceEntity(Game game, String ref, int x, int y) {
         super(ref, x, y);

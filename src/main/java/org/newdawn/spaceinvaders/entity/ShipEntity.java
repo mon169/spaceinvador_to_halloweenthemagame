@@ -6,13 +6,12 @@ import java.awt.Image;
 import java.util.ArrayList;
 import java.util.List;
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.shop.Item;
 
 /**
- * 🎮 ShipEntity - 플레이어 캐릭터
- * 좌우 이동 시 스프라이트 전환, 크기 축소 버전 (0.5배)
+ * ShipEntity - 플레이어 캐릭터.
+ * 좌우 이동 시 스프라이트 전환, 크기 축소 버전으로 그려진다.
  */
 public class ShipEntity extends Entity {
     private Game game;
@@ -47,9 +46,7 @@ public class ShipEntity extends Entity {
         this.sprite = SpriteStore.get().getSprite(spriteRight);
     }
 
-    // =====================================================
-    // 🔹 이동 방향에 따라 스프라이트 변경
-    // =====================================================
+    // 이동 방향에 따라 스프라이트 변경
     @Override
     public void setHorizontalMovement(double speed) {
         super.setHorizontalMovement(speed);
@@ -63,15 +60,13 @@ public class ShipEntity extends Entity {
         }
     }
 
-    // =====================================================
-    // 🔹 크기 줄인 그리기 (0.5배)
-    // =====================================================
+    // 크기 줄인 그리기 (0.13배 스케일 적용)
     @Override
     public void draw(Graphics g) {
         if (sprite == null) return;
         Graphics2D g2 = (Graphics2D) g;
 
-        double scale = 0.13; // 크기 절반
+        double scale = 0.13;
         int newW = (int)(sprite.getWidth() * scale);
         int newH = (int)(sprite.getHeight() * scale);
 
@@ -79,9 +74,8 @@ public class ShipEntity extends Entity {
         g2.drawImage(scaled, (int) x, (int) y, null);
     }
 
-    // =====================================================
-    // 🔹 상태 관리
-    // =====================================================
+    // 상태 관리
+
     public int getHealth() { return currentHealth; }
 
     public void heal(int amount) { currentHealth = Math.min(currentHealth + amount, maxHealth); }
@@ -114,23 +108,20 @@ public class ShipEntity extends Entity {
         }
     }
 
-    // =====================================================
-    // 🔹 이동 제어
-    // =====================================================
+    // 이동 제어
     @Override
     public void move(long delta) {
         checkFrozenStatus();
         if (isFrozen) return;
 
+        // 경계 체크
         if ((dx < 0) && (x < 10)) return;
         if ((dx > 0) && (x > 750)) return;
 
         super.move(delta);
     }
 
-    // =====================================================
-    // 🔹 충돌 처리
-    // =====================================================
+    // 충돌 처리
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof AlienEntity) {
@@ -138,9 +129,7 @@ public class ShipEntity extends Entity {
         }
     }
 
-    // =====================================================
-    // 🔹 아이템/상점 연동용
-    // =====================================================
+    // 아이템/상점 연동용
     public void addItem(Item item) {
         this.inventory.add(item);
     }
@@ -157,9 +146,7 @@ public class ShipEntity extends Entity {
     public void earnMoney(int amount) { this.money += amount; }
     public int getMoney() { return money; }
 
-    // =====================================================
-    // 🔹 무기 및 특수 기능
-    // =====================================================
+    // 무기 및 특수 기능
     public void giveBomb() { this.bombCount++; }
     public void giveIceWeapon() { this.iceWeaponCount++; }
     public void giveShield() { this.shieldCount++; }
@@ -168,7 +155,7 @@ public class ShipEntity extends Entity {
     public boolean hasIceWeapon() { return iceWeaponCount > 0; }
     public boolean hasShield() { return shieldCount > 0; }
 
-    // ✅ Game.java에서 호출하는 getter들
+    // Game.java에서 호출하는 getter들
     public int getBombCount() { return bombCount; }
     public int getIceWeaponCount() { return iceWeaponCount; }
     public int getShieldCount() { return shieldCount; }
@@ -189,16 +176,15 @@ public class ShipEntity extends Entity {
 
     public void activateShield() {
         if (game.itemsAllowed() && shieldCount > 0) {
-            int duration = Math.max(3000, defense * 1000);
+            // 방어력에 따라 쉴드 지속 시간 증가 (최소 3초)
+            int duration = Math.max(3000, defense * 1000); 
             game.addEntity(new ShieldEntity(game, this, duration));
             shieldCount--;
-            System.out.println("🛡 방어막 활성화 (" + duration / 1000 + "초)");
+            System.out.println("방어막 활성화 (" + duration / 1000 + "초)");
         }
     }
 
-    // =====================================================
-    // 🔹 상태 복사 (copyStateFrom)
-    // =====================================================
+    // 상태 복사 (copyStateFrom)
     public void copyStateFrom(ShipEntity other) {
         this.maxHealth = other.maxHealth;
         this.currentHealth = other.currentHealth;
@@ -213,9 +199,7 @@ public class ShipEntity extends Entity {
         this.inventory = new ArrayList<>(other.inventory);
     }
 
-    // =====================================================
-    // 🔹 기타 유틸
-    // =====================================================
+    // 기타 유틸
     public void setFiringInterval(long interval) { this.firingInterval = interval; }
     public long getFiringInterval() { return this.firingInterval; }
 

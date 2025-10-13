@@ -29,7 +29,7 @@ public class AlienEntity extends Entity {
     private long attackDelay;
     protected String shotType = "shot"; // 기본
 
-    // ✅ 기존 기본 생성자
+    // 기본 생성자
     public AlienEntity(Game game, int x, int y) {
         super("sprites/monster1r.png", x, y);
         this.game = game;
@@ -52,7 +52,7 @@ public class AlienEntity extends Entity {
         dy = movingDown ? moveSpeed : -moveSpeed;
     }
 
-    // ✅ 새 생성자 (보스용) : Game, String, int, int
+    // 새 생성자 (보스용) : Game, String, int, int
     public AlienEntity(Game game, String spritePath, int x, int y) {
         super(spritePath, x, y);
         this.game = game;
@@ -123,7 +123,7 @@ public class AlienEntity extends Entity {
         this.sprite = SpriteStore.get().getSprite(path);
     }
 
-    /** 🎯 발사 로직 (owner 설정 포함) */
+    /** 발사 로직 (owner 설정 포함) */
     public void fireShot() {
         int startX = getX() + sprite.getWidth() / 2;
         int startY = getY() + sprite.getHeight() / 2;
@@ -167,7 +167,7 @@ public class AlienEntity extends Entity {
         double vx = ddx * speed;
         double vy = ddy * speed;
 
-        // ✅ owner(this) 전달해서 자기탄 무시 가능하게
+        // owner(this)를 전달하여 자신이 쏜 탄에 맞지 않도록 처리
         EnemyShotEntity shot = new EnemyShotEntity(game, spritePath, startX, startY, vx, vy, shotType, this);
         game.addEntity(shot);
     }
