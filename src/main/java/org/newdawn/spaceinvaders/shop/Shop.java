@@ -121,7 +121,7 @@ public class Shop {
         if (playerShip.getMoney() >= selectedItem.getCost()) {
             playerShip.spendMoney(selectedItem.getCost());
             playerShip.addItem(selectedItem);
-            selectedItem.applyEffect(playerShip); // 아이템 효과 적용!
+            selectedItem.applyEffect(playerShip); // 아이템 효과 적용
             System.out.printf("'%s' 구매를 완료했습니다!\n", selectedItem.getName());
         } else {
             System.out.println("잔액이 부족합니다.");

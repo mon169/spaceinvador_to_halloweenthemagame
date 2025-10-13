@@ -16,7 +16,6 @@ public class StartScreen extends JFrame {
         setLocationRelativeTo(null);
         setLayout(null);
 
-        
         backgroundImage = new ImageIcon(getClass().getResource("/bg/start_background.jpg")).getImage();
 
         ImageIcon startIcon = new ImageIcon(getClass().getResource("/sprites/startbutton.png"));
@@ -39,13 +38,12 @@ public class StartScreen extends JFrame {
 
         startButton.addActionListener(e -> {
             dispose();
-            // 👇 Swing 이벤트 스레드 종료 후에 Game 창을 띄워야 화면이 안 멈춤
+            // 게임 화면으로 전환
             SwingUtilities.invokeLater(() -> {
-                Game game = new Game();       // 게임 객체 생성
-                new Thread(game::gameLoop).start(); // 별도 스레드로 루프 실행
+                Game game = new Game();
+                new Thread(game::gameLoop).start();
             });
         });
-
 
         settingsButton.addActionListener(e ->
             JOptionPane.showMessageDialog(this, "환경설정은 준비 중입니다!", "Info", JOptionPane.INFORMATION_MESSAGE)
