@@ -88,7 +88,7 @@ public class EnemyShotEntity extends Entity {
 
         // ✅ 자기 소유자 or 외계인(보스 포함)은 무시
         if (other == owner) return;
-        if (other instanceof AlienEntity) return;
+        if (other instanceof MonsterEntity) return;
 
         // ✅ 방어막 충돌
         if (other instanceof ShieldEntity) {
@@ -109,8 +109,8 @@ public class EnemyShotEntity extends Entity {
         }
 
         // ✅ 플레이어 피해
-        if (other instanceof ShipEntity) {
-            ShipEntity ship = (ShipEntity) other;
+        if (other instanceof UserEntity) {
+            UserEntity ship = (UserEntity) other;
             ship.takeDamage(10);
             game.removeEntity(this);
             used = true;

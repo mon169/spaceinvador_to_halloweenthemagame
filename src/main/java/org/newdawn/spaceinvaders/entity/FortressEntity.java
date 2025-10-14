@@ -46,6 +46,8 @@ public class FortressEntity extends Entity {
     /** 스프라이트 높이 반환 (정확한 충돌 계산용) */
     public int getHeight() {
         return sprite != null ? sprite.getHeight() : 60;
+
+        
     }
 
     /** 요새 그리기 (스케일 적용 가능) */

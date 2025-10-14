@@ -1,1055 +1,400 @@
 package org.newdawn.spaceinvaders;
 
 import java.awt.Canvas;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.image.BufferStrategy;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import org.newdawn.spaceinvaders.entity.AlienEntity;
 import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.UserEntity;
 import org.newdawn.spaceinvaders.entity.FortressEntity;
-import org.newdawn.spaceinvaders.entity.FrankenBossEntity;
-import org.newdawn.spaceinvaders.entity.ShipEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
-import org.newdawn.spaceinvaders.shop.Shop;
-import org.newdawn.spaceinvaders.shop.Item;
 
-//배경추가
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 
-import org.newdawn.spaceinvaders.entity.ObstacleEntity;
 import org.newdawn.spaceinvaders.shop.Shop;
-import org.newdawn.spaceinvaders.shop.Item;
+
+import org.newdawn.spaceinvaders.manager.EntityManager;
+import org.newdawn.spaceinvaders.manager.BackgroundManager;
+import org.newdawn.spaceinvaders.manager.StageManager;
+import org.newdawn.spaceinvaders.manager.StateManager;
+import org.newdawn.spaceinvaders.manager.InputManager;
+import org.newdawn.spaceinvaders.manager.UIManager;
 
 /**
- * The main hook of our game. This class with both act as a manager
- * for the display and central mediator for the game logic. 
- * 
- * Display management will consist of a loop that cycles round all
- * entities in the game asking them to move and then drawing them
- * in the appropriate place. With the help of an inner class it
- * will also allow the player to control the main ship.
- * 
- * As a mediator it will be informed when entities within our game
- * detect events (e.g. alient killed, played died) and will take
- * appropriate game actions.
- * 
- * @author Kevin Glass
+ * 🎮 Game — 메인 루프 & 게임 상태 관리자
+ * - StartScreen → Game() → gameLoop() 순서로 진입
+ * - Stage1~5(네가 준 MonsterEntity/Boss 구조)와 완전 호환
+ * - UIManager로 HUD/상점/메시지 출력
  */
-public class Game extends Canvas 
-{
-	/** The stragey that allows us to use accelerate page flipping */
-	private BufferStrategy strategy;
-	/** True if the game is currently "running", i.e. the game loop is looping */
-	private boolean gameRunning = true;
-	/** The list of all the entities that exist in our game */
-	private ArrayList<Entity> entities = new ArrayList<Entity>();
-	
-	public List<Entity> getEntities() {
-		return new ArrayList<>(entities);
-	}
-	
-	/** The list of entities that need to be removed from the game this loop */
-	private ArrayList<Entity> removeList = new ArrayList<Entity>();
-	/** The entity representing the player */
-	/** The time at which last fired a shot */
-	private long lastFire = 0;
-	private long lastAlienShotTime = 0;
-	/** The number of aliens left on the screen */
-	private int alienCount;
-	private int currentStage = 1;
-	
-	// 스테이지별 특성을 위한 변수들
-	private long stageStartTime = 0; // 스테이지 시작 시간
-	private final int BASE_TIME_LIMIT = 150; // 기본 2분 30초 시간 제한
-	private boolean itemsAllowed = true; // 아이템 사용 가능 여부
-	private int lifeLimit = 0; // 생명 제한 (0은 제한 없음)
-	
-	// ===== 웨이브 생성 여부 추적 =====
-	private boolean wave1Spawned = false;
-	private boolean wave2Spawned = false;
-	private boolean wave3Spawned = false;
-	
-	private boolean bossSpawned = false;
+public class Game extends Canvas {
 
+    // ========= 기본 디스플레이/루프 =========
+    private BufferStrategy strategy;
+    private JFrame container;
+    private boolean gameRunning = true;
 
-	public int getCurrentStage() {
-        return currentStage;
-    }
-    
-    /**
-     * 현재 스테이지에서 아이템 사용이 가능한지 여부를 반환
-     * @return 아이템 사용 가능 여부
-     */
-	public boolean itemsAllowed() {
-		return itemsAllowed;
-	}
-	
-	/**
-	 * 예외 발생 시 안전하게 게임 상태 초기화
-	 */
-	private void safelyResetGameState() {
-		try {
-			// 게임 상태 안전하게 초기화
-			entities.clear();
-			alienCount = 0;
-			waitingForKeyPress = true;
-			leftPressed = false;
-			rightPressed = false;
-			firePressed = false;
-			shopOpen = false;
-			message = "";
-			
-			// 새로운 선박 생성
-			ship = new ShipEntity(this,"sprites/ship.png",370,520);
-			entities.add(ship);
-			
-			// 필요한 경우 추가 초기화
-			currentStage = 1;
-			setStageFeatures();
-		} catch (Exception e) {
-			System.out.println("게임 상태 초기화 중 오류 발생: " + e.getMessage());
-			e.printStackTrace();
-		}
-	}	private final int MAX_STAGE = 5;
-	
-	/** The message to display which waiting for a key press */
-	private String message = "";
-	/** True if we're holding up game play until a key has been pressed */
-	private boolean waitingForKeyPress = true;
-	/** True if the left cursor key is currently pressed */
-	private boolean leftPressed = false;
-	/** True if the right cursor key is currently pressed */
-	private boolean rightPressed = false;
-	/** True if we are firing */
-	private boolean firePressed = false;
-	/** True if game logic needs to be applied this loop, normally as a result of a game event */
-	private boolean logicRequiredThisLoop = false;
-	/** The last time at which we recorded the frame rate */
-	private long lastFpsTime;
-	/** The current number of frames recorded */
-	private int fps;
-	/** The normal title of the game window */
-	private String windowTitle = "Space Invaders 102";
-	/** The game window that we'll update with the frame count */
-	private JFrame container;
-	private ShipEntity ship;
-	private FortressEntity fortress; // 요새
-	private Shop shop;
-	private boolean shopOpen = false;
-	//background
+    private String windowTitle = "🎃 Halloween Space Invaders";
 
-	private Sprite bg;
-	private double bgY = 0;          // 세로 스크롤 오프셋
-	private double bgSpeed = 30; // px/s (0이면 고정 배경)
+    // ========= 엔티티 =========
+    private final List<Entity> entities = new ArrayList<>();
+    private final List<Entity> removeList = new ArrayList<>();
 
+    private UserEntity ship;
+    private FortressEntity fortress;
 
-	private Sprite startBtn;
-	private double startBtnScale = 0.75;
+    // ========= 매니저 =========
+    private EntityManager entityManager;
+    private BackgroundManager backgroundManager;
+    private StageManager stageManager;
+    private StateManager stateManager;
+    private InputManager inputManager;
+    private UIManager uiManager;
 
-	public ShipEntity getShip() {
-		return ship;
-	}
-	
-	/**
-	 * Construct our game and set it running.
-	 */
-	public Game() {
-		// create a frame to contain our game
-		container = new JFrame("Space Invaders 102");
-		
-		// get hold the content of the frame and set up the resolution of the game
-		JPanel panel = (JPanel) container.getContentPane();
-		panel.setPreferredSize(new Dimension(800,600));
-		panel.setLayout(null);
-		
-		// setup our canvas size and put it into the content of the frame
-		setBounds(0,0,800,600);
-		panel.add(this);
-		
-		// Tell AWT not to bother repainting our canvas since we're
-		// going to do that our self in accelerated mode
-		setIgnoreRepaint(true);
-		
-		// finally make the window visible 
-		container.pack();
-		container.setResizable(false);
-		container.setVisible(true);
-		
-		// add a listener to respond to the user closing the window. If they
-		// do we'd like to exit the game
-		container.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				System.exit(0);
-			}
-		});
-		
-		// add a key input system (defined below) to our canvas
-		// so we can respond to key pressed
-		addKeyListener(new KeyInputHandler());
-		
-		// request the focus so key events come to us
-		requestFocus();
+    // ========= 게임 상태 =========
+    private boolean waitingForKeyPress = true;
+    private boolean leftPressed = false;
+    private boolean rightPressed = false;
+    private boolean firePressed = false;
 
-		// create the buffering strategy which will allow AWT
-		// to manage our accelerated graphics
-		createBufferStrategy(2);
-		strategy = getBufferStrategy();
-		
-		// === BG load ===
-		bg = SpriteStore.get().getSprite("bg/level1_background.jpg");
+    private boolean shopOpen = false;
+    private boolean bossSpawned = false; // 보스 스폰 여부 필요 시 사용
 
-		// === Start button load ===
-		startBtn = SpriteStore.get().getSprite("sprites/startbutton.png");
+    private int currentStage = 1;
+    private final int MAX_STAGE = 5;
 
-		// initialise the entities in our game so there's something
-		// to see at startup
-		initEntities();
-		shop = new Shop(); 
-	}
-	
-	/**
-	 * Start a fresh game, this should clear out any old data and
-	 * create a new set.
-	 */
-	private void startGame() {
-		ShipEntity oldShip = null;
-		if (ship != null) {
-			// 기존 우주선의 상태 저장
-			oldShip = ship;
-			leftPressed = false;
-			rightPressed = false;
-			firePressed = false;
-			shopOpen = false;
-			// ✅ 보스 상태 초기화 (다시 플레이 시 재등장하도록)
-    		bossSpawned = false;
-			stageStartTime = System.currentTimeMillis();  // ✅ 새 스테이지 시작 시간 갱신
-			}
-		
-		// 게임 재시작이나 처음 시작할 때만 스테이지 초기화
-		if (message.contains("restart")) {
-			currentStage = 1;
-			// restart 시에는 이전 우주선의 상태를 무시하고 새로운 우주선 생성
-			oldShip = null;
-		} else if (message.isEmpty()) {
-			// 처음 시작할 때도 스테이지 1로 설정
-			currentStage = 1;
-		}
-		// 스테이지 클리어 후에는 currentStage 유지 (다음 스테이지로 진행)
-		
-		// 스테이지에 따른 특성 설정
-		setStageFeatures();
-		
-		// 스테이지 시작 시간 기록
-		stageStartTime = System.currentTimeMillis();
-		
-		// clear out any existing entities and intialise a new set
-		try {
-			// 안전하게 엔티티 컬렉션 초기화
-			entities.clear();
-			
-			initEntities(oldShip);
-		} catch (Exception e) {
-			System.out.println("Restart 중 오류 발생: " + e.getMessage());
-			e.printStackTrace();
-			// 실패한 경우 다시 초기화
-			safelyResetGameState();
-		}
-		
-		// blank out any keyboard settings we might currently have
-		leftPressed = false;
-		rightPressed = false;
-		firePressed = false;
-		shopOpen = false;
-	}
-	
-	/**
-	 * 현재 스테이지에 따른 특성을 설정
-	 */
-	private void setStageFeatures() {
-		// 기본값으로 초기화
-		itemsAllowed = true;
-		lifeLimit = 0;
-		
-		// 스테이지별 특성 설정
-		switch (currentStage) {
-			case 2:
-				// 스테이지 2: 적의 총알 발사 속도 20% 증가
-				// (AlienEntity에서 처리됨)
-				break;
-			case 3:
-				// 스테이지 3: 생명 제한 모드
-				lifeLimit = 3; // 체력 3 이하면 게임 오버
-				break;
-			// 스테이지 5는 강력한 장애물만 적용, 아이템 제한 제거
-		}
-	}
-	
-	/**
-	 * Initialise the starting state of the entities (ship and aliens). Each
-	 * entitiy will be added to the overall list of entities in the game.
-	 */
-	private void initEntities() {
-		initEntities(null);
+    private long stageStartTime = 0;
+    private long lastFpsTime = 0;
+    private int fps = 0;
+    private long lastFire = 0;
 
-		
-	}
-	
-	/**
-	 * Initialise the starting state of the entities with an optional previous ship state
-	 */
-private void initEntities(ShipEntity oldShip) {
-    // create the player ship and place it roughly in the center of the screen
-    if (oldShip == null) {
-        ship = new ShipEntity(this, "sprites/ship.png", 370, 520);
-    } else {
-        // 이전 우주선의 상태를 새 우주선에 복사
-        ship = new ShipEntity(this, "sprites/ship.png", 370, 520);
-        ship.copyStateFrom(oldShip);
-    }
-    entities.add(ship);
-    alienCount = 0;
+    private int alienCount = 0; // UI/스테이지/클리어 로직에서 참조
 
-    // ✅ 0~40초: monster1~3 (normal)
-    for (int i = 0; i < 6; i++) {
-        AlienEntity alien = new AlienEntity(this, 100 + (i * 100), 80);
-        alien.setShotType("normal");
-        entities.add(alien);
-        alienCount++;
+    // UI 메시지
+    private String message = "";
+
+    // ========= 규칙값 (UIManager가 Game에 물어봄) =========
+    private final int BASE_TIME_LIMIT = 150; // ⏱ 기본 150초
+    private final int LIFE_LIMIT = 3;        // Stage3 제한 체력
+
+    // ========= 기타 =========
+    private Sprite bg;
+    private Shop shop = new Shop();
+
+    // ========= 생성자 =========
+    public Game() {
+        initWindow();
+        initManagers();
+        initEntities();
+        stageStartTime = System.currentTimeMillis();
     }
 
-    // 장애물 생성 (stage 4 이상)
-    if (currentStage >= 4) {
-        int obstacleRows = (currentStage >= 5) ? 2 : 1;
-        int panelWidth = 800;
-        int obstacleWidth = 32;
-        int obstacleCount = panelWidth / obstacleWidth;
-        int startX = 0;
-        for (int row = 0; row < obstacleRows; row++) {
-            for (int x = 0; x < obstacleCount; x++) {
-                int obsX = startX + (x * obstacleWidth);
-                int obsY = 380 + (row * 40);
-                ObstacleEntity obstacle = new ObstacleEntity(this, obsX, obsY);
-                entities.add(obstacle);
+    // ========= 초기화 =========
+    private void initWindow() {
+        container = new JFrame(windowTitle);
+
+        JPanel panel = (JPanel) container.getContentPane();
+        panel.setPreferredSize(new Dimension(800, 600));
+        panel.setLayout(null);
+
+        setBounds(0, 0, 800, 600);
+        panel.add(this);
+
+        setIgnoreRepaint(true);
+
+        container.pack();
+        container.setResizable(false);
+        container.setVisible(true);
+
+        container.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
             }
-        }
+        });
+
+        createBufferStrategy(2);
+        strategy = getBufferStrategy();
+
+        requestFocus();
     }
 
-    // 사탕 바구니 추가 (항상 화면 하단 중앙)
-    fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
-    entities.add(fortress);
-}
+    private void initManagers() {
+        entityManager = new EntityManager(this, entities, removeList);
+        backgroundManager = new BackgroundManager();
+        uiManager = new UIManager(this);
+        stateManager = new StateManager(this, uiManager);
+        stageManager = new StageManager(this, entityManager);
+        inputManager = new InputManager(this);
+        addKeyListener(inputManager);
 
-
-	
-	/**
-	 * Notification from a game entity that the logic of the game
-	 * should be run at the next opportunity (normally as a result of some
-	 * game event)
-	 */
-	public void updateLogic() {
-		logicRequiredThisLoop = true;
-	}
-	
-	/**
-	 * Remove an entity from the game. The entity removed will
-	 * no longer move or be drawn.
-	 * 
-	 * @param entity The entity that should be removed
-	 */
-	public void removeEntity(Entity entity) {
-		removeList.add(entity);
-	}
-	
-	/**
-	 * Notification that the player has died. 
-	 */
-
-	public void notifyFortressDestroyed() {
-    message = "요새가 파괴되었습니다! 게임 오버!";
-    waitingForKeyPress = true;
-	}
-
-
-	public void notifyDeath() {
-		message = "Oh no! They got you, try again?";
-		waitingForKeyPress = true;
-	}
-	
-	/**
-	 * Notification that the player has won since all the aliens
-	 * are dead.
-	 */
-	public void notifyWin() {
-		message = "축하합니다! 모든 스테이지를 클리어했습니다!\nESC키를 누르면 게임이 종료됩니다.";
-		waitingForKeyPress = true;
-		shopOpen = false;  // 마지막에는 상점을 열지 않음
-	}
-	
-	/**
-	 * Notification that an alien has been killed
-	 */
-	public void addEntity(Entity entity) {
-		entities.add(entity);
-	}
-
-	// ========================================
-// 🧩 보스 처치 시 호출되는 메서드
-// ========================================
-public void bossDefeated() {
-    System.out.println("🎉 보스 처치 완료! 스테이지 클리어!");
-
-    alienCount = Math.max(0, alienCount - 1);
-    bossSpawned = false; // ✅ 다시 안나오게
-
-    if (ship != null) {
-        ship.earnMoney(500);
-        System.out.println("💰 보상 500 골드 지급!");
+        bg = SpriteStore.get().getSprite("bg/level1_background.jpg");
     }
 
-    // ✅ 클리어 처리
-    message = "Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
-    waitingForKeyPress = true;
-    shopOpen = true;
-}
+    private void initEntities() {
+        entities.clear();
 
+        // 플레이어
+        ship = new UserEntity(this, "sprites/userr.png", 370, 520);
+        entities.add(ship);
 
-	
-	private void drawBgCover(Graphics2D g, Sprite s, int offY) {
-    if (s == null) return;
-    int iw = s.getWidth(), ih = s.getHeight();
-    double scale = Math.max(800.0/iw, 600.0/ih); // 화면을 꽉 채우는 스케일
-    int dw = (int)Math.round(iw * scale);
-    int dh = (int)Math.round(ih * scale);
-    int dx = (800 - dw) / 2;
+        // 요새
+        fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
+        entities.add(fortress);
 
-    // 세로 스크롤
-    int sy = - (offY % dh);
-    s.drawScaled(g, dx, sy,    dw, dh);
-    s.drawScaled(g, dx, sy+dh, dw, dh);
-}
-	
+        // 스테이지 로드
+        stageManager.loadStage(currentStage);
+    }
 
+    // ========= 메인 루프 =========
+    public void gameLoop() {
+        long lastLoopTime = System.currentTimeMillis();
 
-	private void updateAlienCount() {
-		// 현재 화면에 있는 실제 적의 수를 세기
-		int count = 0;
-		for (Entity entity : entities) {
-			if (entity instanceof AlienEntity) {
-				count++;
-			}
-		}
-		alienCount = count;
-	}
-
-	public void notifyAlienKilled() {
-		ship.earnMoney(30);  // 적 처치 보상 30골드로 수정
-		updateAlienCount();  // 남은 적 수 갱신
-	}
-	
-	/**
-	 * Attempt to fire a shot from the player. Its called "try"
-	 * since we must first check that the player can fire at this 
-	 * point, i.e. has he/she waited long enough between shots
-	 */
-	public void tryToFire() {
-		// check that we have waiting long enough to fire
-		if (System.currentTimeMillis() - lastFire < ship.getFiringInterval()) {
-			return;
-		}
-		
-		// if we waited long enough, create the shot entity, and record the time.
-		lastFire = System.currentTimeMillis();
-		ShotEntity shot = new ShotEntity(this,"sprites/shot.png",ship.getX()+10,ship.getY()-30);
-		entities.add(shot);
-	}
-	
-	/**
-	 * The main game loop. This loop is running during all game
-	 * play as is responsible for the following activities:
-	 * <p>
-	 * - Working out the speed of the game loop to update moves
-	 * - Moving the game entities
-	 * - Drawing the screen contents (entities, text)
-	 * - Updating game events
-	 * - Checking Input
-	 * <p>
-	 */
-public void gameLoop() {
-    long lastLoopTime = SystemTimer.getTime();
-    while (gameRunning) {
-        try {
-            long delta = SystemTimer.getTime() - lastLoopTime;
-            lastLoopTime = SystemTimer.getTime();
-
-            // update the frame counter
-            lastFpsTime += delta;
-            fps++;
-
-            // update our FPS counter if a second has passed since
-            // we last recorded
-            if (lastFpsTime >= 1000) {
-                container.setTitle(windowTitle + " (FPS: " + fps + ")");
-                lastFpsTime = 0;
-                fps = 0;
-            }
-
-            // Get hold of a graphics context for the accelerated 
-            // surface and blank it out
-            Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
-            //g.setColor(Color.black);
-            //g.fillRect(0,0,800,600);
-
-            // === draw background first (contain) ===
-            drawBgCover(g, bg, (int) bgY);
-
-            // ✅ 웨이브 및 발사속도 제어 추가
-            long elapsedSec = (System.currentTimeMillis() - stageStartTime) / 1000;
-
-            if (!waitingForKeyPress) {
-                // 적/유저 모두 장애물과 상관없이 공격 가능
-                for (int i = 0; i < entities.size(); i++) {
-                    Entity entity = entities.get(i);
-                    entity.move(delta);
-                }
-
-                // === 🔹 지속적 웨이브 스폰 로직 시작 ===
-                long now = System.currentTimeMillis();
-
-                // 0~60초: 1~4번(normal) 5초마다 등장
-                if (elapsedSec < 60 && now - lastAlienShotTime > 5000) {
-                    for (int i = 0; i < 6; i++) {
-                        AlienEntity alien = new AlienEntity(this, 100 + (int)(Math.random() * 600), 80 + (int)(Math.random() * 50));
-                        alien.setShotType("shot");
-                        entities.add(alien);
-                        alienCount++;
-                    }
-                    lastAlienShotTime = now;
-                    System.out.println("👻 NORMAL 몬스터 생성 (5초 주기)");
-                }
-
-                // 60~80초: 5~6번(ice) 10초마다 등장
-                if (elapsedSec >= 60 && elapsedSec < 80 && now - lastAlienShotTime > 10000) {
-                    for (int i = 0; i < 4; i++) {
-                        AlienEntity alien = new AlienEntity(this, 100 + (int)(Math.random() * 600), 120 + (int)(Math.random() * 50));
-                        alien.setShotType("iceshot");
-                        entities.add(alien);
-                        alienCount++;
-                    }
-                    lastAlienShotTime = now;
-                    System.out.println("🧊 ICE 몬스터 생성 (10초 주기)");
-                }
-
-                // 80초 이후: 7번(bomb) 10초마다 등장
-                if (elapsedSec >= 80 && now - lastAlienShotTime > 10000) {
-                    AlienEntity boss = new AlienEntity(this, 350 + (int)(Math.random() * 100 - 50), 150);
-                    boss.setShotType("bombshot");
-                    entities.add(boss);
-                    alienCount++;
-                    lastAlienShotTime = now;
-                    System.out.println("💣 BOMB 몬스터 생성 (10초 주기)");
-                }
-                // === 🔹 지속적 웨이브 스폰 로직 끝 ===
-
-				// === ⚡ Stage 1 보스 프랑켄슈타인 등장 ===
-				if (currentStage == 1 && elapsedSec >= 60 && !bossSpawned) {
-					FrankenBossEntity boss = new FrankenBossEntity(this, 350, 120);
-					entities.add(boss);
-					alienCount++;
-					bossSpawned = true;
-					System.out.println("⚡ 프랑켄슈타인 보스 등장!");
-				}
-
-
-
-                if (alienCount > 0) {
-                    long nowShot = SystemTimer.getTime();
-                    // 스테이지에 따라 발사 간격 조절 (스테이지가 높을수록 더 빠르게 발사)
-                    long alienShotInterval = 2000 - (getCurrentStage() * 200);
-                    // 스테이지 1에서는 더 느리게
-                    if (getCurrentStage() == 1) {
-                        alienShotInterval = 2800;
-                    }
-                    // 스테이지 2에서는 추가로 20% 더 빠르게 발사
-                    if (getCurrentStage() == 2) {
-                        alienShotInterval = (long) (alienShotInterval * 0.8);
-                    }
-                    if (alienShotInterval < 500) alienShotInterval = 500;
-                    if (nowShot - lastAlienShotTime >= alienShotInterval) {
-                        lastAlienShotTime = nowShot;
-                        java.util.List<AlienEntity> aliens = new java.util.ArrayList<>();
-                        for (Entity entity : entities) {
-                            if (entity instanceof AlienEntity) {
-                                aliens.add((AlienEntity) entity);
-                            }
-                        }
-                        if (!aliens.isEmpty()) {
-                            int randomIndex = (int) (Math.random() * aliens.size());
-                            AlienEntity shootingAlien = aliens.get(randomIndex);
-                            shootingAlien.fireShot();
-                        }
-                    }
-                }
-            }
-
-            // cycle round drawing all the entities we have in the game
-            for (int i = 0; i < entities.size(); i++) {
-                Entity entity = (Entity) entities.get(i);
-                entity.draw(g);
-            }
-
-            // brute force collisions, compare every entity against
-            // every other entity. If any of them collide notify 
-            // both entities that the collision has occured
-            for (int p = 0; p < entities.size(); p++) {
-                for (int s = p + 1; s < entities.size(); s++) {
-                    Entity me = (Entity) entities.get(p);
-                    Entity him = (Entity) entities.get(s);
-
-                    if (me.collidesWith(him)) {
-                        me.collidedWith(him);
-                        him.collidedWith(me);
-                    }
-                }
-            }
-
-            // remove any entity that has been marked for clear up
-            for (Entity entity : removeList) {
-                entities.remove(entity);
-            }
-            removeList.clear();
-
-            // 상태 변경 후 매 프레임마다 적 수 갱신
-            updateAlienCount();
-
-            // 모든 적이 제거되었는지 확인
-			// ❌ 일반 몬스터 전멸로 클리어되는 조건 제거
-			// (보스 사망 시 bossDefeated()에서만 클리어 처리)
-
-            /*if (alienCount == 0 && !waitingForKeyPress) {
-                if (currentStage == MAX_STAGE) {
-                    notifyWin();  // 최종 스테이지 클리어
-                } else {
-                    message = "Stage " + currentStage + " 클리어!";
-                    waitingForKeyPress = true;
-                    shopOpen = true;
-                }
-            }*/
-
-            // if a game event has indicated that game logic should
-            // be resolved, cycle round every entity requesting that
-            // their personal logic should be considered.
-            if (logicRequiredThisLoop) {
-                for (int i = 0; i < entities.size(); i++) {
-                    Entity entity = (Entity) entities.get(i);
-                    entity.doLogic();
-                }
-
-                logicRequiredThisLoop = false;
-            }
-
-            // === 기존 UI 코드 전체 유지 ===
-            if (waitingForKeyPress) {
-                g.setColor(Color.white);
-
-                if (shopOpen) {
-                    g.setColor(new Color(0, 0, 0, 200));
-                    g.fillRect(0, 0, 800, 600);
-                    g.setColor(Color.white);
-
-                    g.drawString("★ SHOP ★", 370, 50);
-                    g.drawString("현재 보유 금액: " + ship.getMoney() + " 골드", 330, 80);
-
-                    List<Item> items = shop.getItemsForSale();
-                    int itemWidth = 350;
-                    int itemHeight = 80;
-                    int gap = 20;
-                    int startX = 50;
-                    int startY = 100;
-
-                    for (int i = 0; i < items.size(); i++) {
-                        Item item = items.get(i);
-                        int row = i / 2;
-                        int col = i % 2;
-                        int x = startX + col * (itemWidth + gap);
-                        int y = startY + row * (itemHeight + gap / 2);
-                        g.setColor(new Color(50, 50, 50, 150));
-                        g.fillRect(x, y, itemWidth, itemHeight - 5);
-                        g.setColor(Color.white);
-                        g.drawString((i + 1) + ". " + item.getName() + " (가격: " + item.getCost() + "골드)", x + 20, y + 25);
-                        String[] descLines = item.getDescription().split("\n");
-                        for (int j = 0; j < descLines.length; j++) {
-                            g.drawString("  " + descLines[j], x + 20, y + 50 + j * 15);
-                        }
-                    }
-
-                    g.setColor(new Color(0, 0, 0, 200));
-                    g.fillRect(0, 510, 800, 100);
-                    g.setColor(Color.white);
-
-                    g.setColor(Color.yellow);
-                    int nextStage = currentStage + 1;
-                    String nextStageInfo = "다음 스테이지 " + nextStage + " 특성: ";
-                    if (nextStage == 2) {
-                        nextStageInfo += "적의 총알 발사 속도 20% 증가";
-                    } else if (nextStage == 3) {
-                        nextStageInfo += "생명 제한 모드 (체력 3 이하시 게임 오버)";
-                    } else if (nextStage == 4) {
-                        nextStageInfo += "장애물이 등장합니다!";
-                    } else if (nextStage == 5) {
-                        nextStageInfo += "이중 장애물 등장!!";
-                    }
-
-                    g.drawString(nextStageInfo, (800 - g.getFontMetrics().stringWidth(nextStageInfo)) / 2, 480);
-                    g.setColor(Color.white);
-                    int bottomY = 540;
-                    g.drawString("[ 조작 방법 ]", 350, bottomY);
-                    g.drawString("숫자 키(1-" + items.size() + "): 아이템 구매   |", 200, bottomY + 25);
-                    g.drawString("R: 다음 스테이지   |", 360, bottomY + 25);
-                    g.drawString("ESC: 게임 종료", 470, bottomY + 25);
-                } else if (message.contains("got you")) {
-                    g.drawString(message, (800 - g.getFontMetrics().stringWidth(message)) / 2, 250);
-                    g.drawString("Press R to restart or any other key to continue",
-                            (800 - g.getFontMetrics().stringWidth("Press R to restart or any other key to continue")) / 2, 300);
-                } else if (message.contains("축하합니다")) {
-                    g.setColor(new Color(0, 0, 0, 200));
-                    g.fillRect(0, 0, 800, 600);
-                    g.setColor(Color.white);
-                    String[] lines = message.split("\n");
-                    g.drawString(lines[0], (800 - g.getFontMetrics().stringWidth(lines[0])) / 2, 250);
-                    g.drawString(lines[1], (800 - g.getFontMetrics().stringWidth(lines[1])) / 2, 300);
-                } else if (message.contains("Stage")) {
-                    g.setColor(new Color(0, 0, 0, 200));
-                    g.fillRect(0, 0, 800, 600);
-                    g.setColor(Color.white);
-                    g.drawString(message, (800 - g.getFontMetrics().stringWidth(message)) / 2, 250);
-                    String pressAnyKey = "상점이 열렸습니다. 아이템을 구매하세요!";
-                    g.drawString(pressAnyKey, (800 - g.getFontMetrics().stringWidth(pressAnyKey)) / 2, 300);
-                } else {
-                    g.setColor(new Color(0, 0, 0, 200));
-                    g.fillRect(0, 0, 800, 600);
-                    g.setColor(Color.white);
-                    int MAX_BTN_W = 700;
-                    int MAX_BTN_H = 500;
-                    int bw = startBtn.getWidth();
-                    int bh = startBtn.getHeight();
-                    double scale = Math.min(MAX_BTN_W / (double) bw, MAX_BTN_H / (double) bh);
-                    int dw = (int) Math.round(bw * scale);
-                    int dh = (int) Math.round(bh * scale);
-                    int btnX = (800 - dw) / 2;
-                    int btnY = (600 - dh) / 2 + 40;
-                    startBtn.drawScaled(g, btnX, btnY, dw, dh);
-                    String title = "SPACE INVADERS";
-                    g.drawString(title, (800 - g.getFontMetrics().stringWidth(title)) / 2, 200);
-                    String controls = "Controls: ← → to move, SPACE to fire";
-                    g.drawString(controls, (800 - g.getFontMetrics().stringWidth(controls)) / 2, 500);
-                }
-            }
-
-            // 플레이어 상태 표시
-
-			// 💀 즉시 패배 조건
-			if (ship.getHealth() <= 0) {
-				notifyDeath();
-			} else if (fortress.getHP() <= 0) {
-				notifyFortressDestroyed();
-			}
-
-
-            if (!waitingForKeyPress) {
-                g.setColor(Color.white);
-
-                String stageInfo = "STAGE " + currentStage + " - ";
-                if (currentStage == 1) {
-                    stageInfo += "기본 모드";
-                } else if (currentStage == 2) {
-                    stageInfo += "적의 총알 발사 속도 20% 증가";
-                } else if (currentStage == 3) {
-                    stageInfo += "생명 제한 모드";
-                } else if (currentStage == 4) {
-                    stageInfo += "장애물 등장 모드";
-                } else if (currentStage == 5) {
-                    stageInfo += "이중 장애물 등장 모드";
-                }
-
-                g.drawString(stageInfo, 20, 30);
-                g.drawString("남은 적: " + alienCount, 250, 30);
-
-                int timeLimit = 150; // ⏱ 2분 30초 고정
-
-				long elapsedTime = (System.currentTimeMillis() - stageStartTime) / 1000;
-				long remainingTime = timeLimit - elapsedTime;
-
-				if (remainingTime <= 0 && bossSpawned) {
-					message = "시간 초과! 프랑켄슈타인을 물리치지 못했습니다!";
-					waitingForKeyPress = true;
-				} else {
-					String timeFormat = String.format("시간 제한: %d초", remainingTime);
-					if (remainingTime <= 20) {
-						g.setColor(Color.red);
-						g.drawString(timeFormat, 350, 30);
-						g.setColor(Color.white);
-					} else {
-						g.drawString(timeFormat, 350, 30);
-					}
-				}
-
-
-                g.drawString("체력: " + ship.getHealth(), 20, 50);
-                g.drawString("방어력: " + ship.getDefense(), 20, 70);
-                g.drawString("공격력: " + ship.getAttackPower(), 20, 90);
-                g.drawString("골드: " + ship.getMoney(), 20, 110);
-                g.drawString("요새 HP: " + fortress.getHP(), 20, 130);
-
-                if (currentStage == 3 && ship.getHealth() <= lifeLimit) {
-                    notifyDeath();
-                }
-
-                int weaponY = 130;
-                if (ship.hasBomb() || ship.hasIceWeapon() || ship.hasShield()) {
-                    g.drawString("[ 보유 중인 특수 무기 ]", 20, weaponY);
-                    weaponY += 20;
-                }
-                if (ship.hasBomb()) {
-                    g.drawString(String.format("• 폭탄 x%d (B키로 사용)", ship.getBombCount()), 20, weaponY);
-                    weaponY += 20;
-                }
-                if (ship.hasIceWeapon()) {
-                    g.drawString(String.format("• 얼음 공격x%d (I키로 사용)", ship.getIceWeaponCount()), 20, weaponY);
-                    weaponY += 20;
-                }
-                if (ship.hasShield()) {
-                    g.drawString(String.format("• 방어막 x%d (S키로 사용)", ship.getShieldCount()), 20, weaponY);
-                }
-            }
-
-            g.dispose();
-            strategy.show();
-
-            ship.setHorizontalMovement(0);
-            if ((leftPressed) && (!rightPressed)) {
-                ship.setHorizontalMovement(-ship.getMoveSpeed());
-            } else if ((rightPressed) && (!leftPressed)) {
-                ship.setHorizontalMovement(ship.getMoveSpeed());
-            }
-
-            if (firePressed) {
-                tryToFire();
-            }
-
-            SystemTimer.sleep(lastLoopTime + 10 - SystemTimer.getTime());
-        } catch (Exception ex) {
-            System.out.println("게임 루프 중 오류 발생: " + ex.getMessage());
-            ex.printStackTrace();
+        while (gameRunning) {
             try {
+                long now = System.currentTimeMillis();
+                long delta = now - lastLoopTime;
+                lastLoopTime = now;
+
+                // FPS
+                lastFpsTime += delta;
+                fps++;
+                if (lastFpsTime >= 1000) {
+                    container.setTitle(windowTitle + " (FPS: " + fps + ")");
+                    lastFpsTime = 0;
+                    fps = 0;
+                }
+
+                Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
+
+                // 배경
+                backgroundManager.draw(g, bg, 0);
+
+                // 스테이지/엔티티 갱신
+                if (!waitingForKeyPress) {
+                    stageManager.spawnWave(currentStage, stageStartTime);
+                    entityManager.moveEntities(delta);
+                    entityManager.checkCollisions();
+                    entityManager.cleanupEntities();
+                }
+
+                // 엔티티 그리기
+                for (int i = 0; i < entities.size(); i++) {
+                    entities.get(i).draw(g);
+                }
+
+                // UI (HUD/상점/메시지 등)
+                uiManager.drawFullUI(
+                    g,
+                    this,
+                    ship,
+                    fortress,
+                    entities,
+                    message,
+                    shopOpen,
+                    waitingForKeyPress
+                );
+
+                g.dispose();
+                strategy.show();
+
+                // 입력 반영
+                handleMovement();
+                handleFiring();
+
+                Thread.sleep(10);
+            } catch (Exception ex) {
+                System.err.println("⚠️ 게임 루프 오류: " + ex.getMessage());
+                ex.printStackTrace();
                 safelyResetGameState();
-                Thread.sleep(1000);
-            } catch (InterruptedException ie) {
             }
         }
     }
-}
 
+    // ========= 입력 처리 =========
+    private void handleMovement() {
+        if (ship == null) return;
 
-	
-	/**
-	 * A class to handle keyboard input from the user. The class
-	 * handles both dynamic input during game play, i.e. left/right 
-	 * and shoot, and more static type input (i.e. press any key to
-	 * continue)
-	 * 
-	 * This has been implemented as an inner class more through 
-	 * habbit then anything else. Its perfectly normal to implement
-	 * this as seperate class if slight less convienient.
-	 * 
-	 * @author Kevin Glass
-	 */
-	private class KeyInputHandler extends KeyAdapter {
-		/** The number of key presses we've had while waiting for an "any key" press */
-		private int pressCount = 1;
-		
-		/**
-		 * Notification from AWT that a key has been pressed. Note that
-		 * a key being pressed is equal to being pushed down but *NOT*
-		 * released. Thats where keyTyped() comes in.
-		 *
-		 * @param e The details of the key that was pressed 
-		 */
-		public void keyPressed(KeyEvent e) {
-			// if we're waiting for an "any key" typed then we don't 
-			// want to do anything with just a "press"
-			if (waitingForKeyPress) {
-				return;
-			}
-			
-			
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = true;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_B) {
-				if (ship.hasBomb()) {
-					ship.useBomb();
-				}
-			}
-			if (e.getKeyCode() == KeyEvent.VK_I) {
-				if (ship.hasIceWeapon()) {
-					ship.useIceWeapon();
-				}
-			}
-			if (e.getKeyCode() == KeyEvent.VK_S) { // S키로 방어막 사용
-				System.out.println("S키 입력됨! 방어막 개수: " + ship.getShieldCount());
-				ship.activateShield(); // 방어력에 따라 방어막(에너지 실드) 생성
+        ship.setHorizontalMovement(0);
+        if (leftPressed && !rightPressed) {
+            ship.setHorizontalMovement(-ship.getMoveSpeed());
+        } else if (rightPressed && !leftPressed) {
+            ship.setHorizontalMovement(ship.getMoveSpeed());
+        }
+    }
+
+    private void handleFiring() {
+        if (ship == null) return;
+        if (!firePressed) return;
+
+        tryToFire();
+    }
+
+    // ========= 공격 =========
+    public void tryToFire() {
+        if (System.currentTimeMillis() - lastFire < ship.getFiringInterval()) return;
+
+        lastFire = System.currentTimeMillis();
+        ShotEntity shot = new ShotEntity(this, "sprites/shot.png", ship.getX() + 10, ship.getY() - 30);
+        entities.add(shot);
+    }
+
+    // ========= 스테이지 제어 =========
+    public void startGameOrNextStage(boolean restartFromZero) {
+        UserEntity prev = ship;
+        if (restartFromZero) prev = null;
+
+        stageStartTime = System.currentTimeMillis();
+        entities.clear();
+
+        if (prev == null) {
+            ship = new UserEntity(this, "sprites/userr.png", 370, 520);
+        } else {
+            ship = new UserEntity(this, "sprites/userr.png", 370, 520);
+            ship.copyStateFrom(prev);
+        }
+        entities.add(ship);
+
+        fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
+        entities.add(fortress);
+
+        stageManager.loadStage(currentStage);
+
+        leftPressed = rightPressed = firePressed = false;
+        waitingForKeyPress = false;
+        shopOpen = false;
+        bossSpawned = false;
+        message = "";
+        alienCount = 0;
+    }
+
+    private void nextStage() {
+        if (currentStage >= MAX_STAGE) {
+            notifyWin();
+            return;
+        }
+        currentStage++;
+        startGameOrNextStage(false);
+    }
+
+    // ========= 이벤트(보스/승패/적 처치) =========
+    public void bossDefeated() {
+        bossSpawned = false;
+        if (ship != null) ship.earnMoney(500);
+
+        message = "🎉 Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
+        waitingForKeyPress = true;
+        shopOpen = currentStage < MAX_STAGE;
+
+        if (currentStage == MAX_STAGE) {
+            message = "👑 모든 스테이지 클리어!\n축하합니다!";
+            shopOpen = false;
+        }
+    }
+
+    public void notifyDeath() {
+        message = "💀 패배했습니다! 다시 도전하시겠습니까?";
+        waitingForKeyPress = true;
+        shopOpen = false;
+    }
+
+    public void notifyFortressDestroyed() {
+        message = "🏰 요새가 파괴되었습니다!";
+        waitingForKeyPress = true;
+        shopOpen = false;
+    }
+
+    public void notifyWin() {
+        message = "축하합니다! 모든 스테이지를 클리어했습니다!\nESC키를 누르면 게임이 종료됩니다.";
+        waitingForKeyPress = true;
+        shopOpen = false;
+    }
+
+    /** 🔔 적 처치 시(ShotEntity, BombShotEntity 등에서 호출) */
+    public void notifyAlienKilled() {
+        alienCount--;
+        if (alienCount < 0) alienCount = 0;
+        System.out.println("👻 남은 적: " + alienCount);
+    }
+
+    // ========= 상점 =========
+    public void handleShopKey(char key) {
+        if (!shopOpen || shop == null || ship == null) return;
+
+        if (key >= '1' && key <= '9') {
+            int index = key - '1';
+            purchaseItem(index);
+        } else if (key == 'r' || key == 'R') {
+            if (currentStage == MAX_STAGE) {
+                message = "🎆 모든 스테이지 완료!";
+                shopOpen = false;
+                waitingForKeyPress = true;
+            } else {
+                currentStage++;
+                startGameOrNextStage(false);
             }
-		} 
-		
-		/**
-		 * Notification from AWT that a key has been released.
-		 *
-		 * @param e The details of the key that was released 
-		 */
-		public void keyReleased(KeyEvent e) {
-			// if we're waiting for an "any key" typed then we don't 
-			// want to do anything with just a "released"
-			if (waitingForKeyPress) {
-				return;
-			}
-			
-			if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-				leftPressed = false;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-				rightPressed = false;
-			}
-			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-				firePressed = false;
-			}
-		}
+        } else if (key == 27) { // ESC
+            System.exit(0);
+        }
+    }
 
-		/**
-		 * Notification from AWT that a key has been typed. Note that
-		 * typing a key means to both press and then release it.
-		 *
-		 * @param e The details of the key that was typed. 
-		 */
-		public void keyTyped(KeyEvent e) {
-			// if we're waiting for a "any key" type then
-			// check if we've recieved any recently. We may
-			// have had a keyType() event from the user releasing
-			// the shoot or move keys, hence the use of the "pressCount"
-			// counter.
-			if (waitingForKeyPress) {
-				if (shopOpen) {
-					// 상점이 열려있을 때는 숫자 키 입력을 처리
-					char keyChar = e.getKeyChar();
-					if (keyChar >= '1' && keyChar <= '9') {
-						int itemIndex = keyChar - '1';
-						shop.purchaseItem(ship, itemIndex);
-					} else if (keyChar == 'r' || keyChar == 'R') {
-						// 다음 스테이지 시작
-						currentStage++; // 여기서 스테이지를 증가
-						waitingForKeyPress = false;
-						startGame();
-					} else if (keyChar == 27) { // ESC 키
-						System.exit(0);
-					}
-				} else if (message.contains("got you") || message.contains("축하합니다")) {
-					// 게임 오버 상태 또는 게임 클리어 상태
-					char keyChar = e.getKeyChar();
-					if (keyChar == 'r' || keyChar == 'R') {
-						if (message.contains("축하합니다")) {
-							// 게임 클리어 후 R키 - 게임 종료
-							System.exit(0);
-						} else {
-							// 게임 오버 후 R키 - 게임 재시작
-							try {
-								message = "restart";
-								waitingForKeyPress = false;
-								startGame();
-							} catch (Exception ex) {
-								System.out.println("R키 재시작 중 오류 발생: " + ex.getMessage());
-								ex.printStackTrace();
-								// 실패한 경우 초기 상태로 복구
-								safelyResetGameState();
-								waitingForKeyPress = true;
-							}
-						}
-					} else if (pressCount == 1) {
-						// 게임 계속하기 (게임 오버 상태에서만)
-						if (!message.contains("축하합니다")) {
-							try {
-								message = "restart"; // 게임 오버 후 아무 키나 눌러도 restart 메시지 설정
-								waitingForKeyPress = false;
-								pressCount = 0; // pressCount를 먼저 초기화
-								startGame();
-							} catch (Exception ex) {
-								System.out.println("게임 재시작 중 오류 발생: " + ex.getMessage());
-								ex.printStackTrace();
-								// 실패한 경우 초기 상태로 복구
-								safelyResetGameState();
-								waitingForKeyPress = true;
-								pressCount = 1;
-							}
-						}
-					} else {
-						pressCount++;
-					}
-				} else if (pressCount == 1) {
-					// 게임 시작
-					waitingForKeyPress = false;
-					startGame();
-					pressCount = 0;
-				} else {
-					pressCount++;
-				}
-			}
-			
-			// ESC 키를 누르면 게임 종료 (ESC키만 체크)
-			if (e.getKeyChar() == 27) { // ESC 키 코드 = 27
-				System.exit(0);
-			}
-			// B키는 종료하지 않도록 명시적으로 필터링
-			// (keyPressed에서 처리됨)
-		}
-	}
+    public void purchaseItem(int index) {
+        try {
+            shop.purchaseItem(ship, index);
+        } catch (Exception e) {
+            System.err.println("⚠️ 아이템 구매 오류: " + e.getMessage());
+        }
+    }
 
-	public long getStageStartTime() {
-    return stageStartTime;
-	}
+    // ========= 안전 초기화 =========
+    private void safelyResetGameState() {
+        entities.clear();
+        removeList.clear();
+        waitingForKeyPress = true;
+        shopOpen = false;
+        currentStage = 1;
+        message = "";
+        initEntities();
+    }
 
-	public FortressEntity getFortress() {
-    return fortress;
-}
-	
-	/**
-	 * The entry point into the game. We'll simply create an
-	 * instance of class which will start the display and game
-	 * loop.
-	 * 
-	 * @param argv The arguments that are passed into our game
-	 */
-	/*public static void main(String argv[]) {
-		Game g = new Game();
+    // ========= 외부에서 쓰는 조작/종료 =========
+    public void endGame() {
+        System.exit(0);
+    }
 
-		// Start the main game loop, note: this method will not
-		// return until the game has finished running. Hence we are
-		// using the actual main thread to run the game.
-		g.gameLoop();
-	}*/
+    // ========= setters (입력용) =========
+    public void setLeftPressed(boolean v) { leftPressed = v; }
+    public void setRightPressed(boolean v) { rightPressed = v; }
+    public void setFirePressed(boolean v) { firePressed = v; }
+
+    public boolean isWaitingForKeyPress() { return waitingForKeyPress; }
+    public void setWaitingForKeyPress(boolean v) { waitingForKeyPress = v; }
+
+    public boolean isShopOpenFlag() { return shopOpen; }
+    public void setShopOpenFlag(boolean v) { shopOpen = v; }
+
+    // ========= getters (엔티티/매니저/규칙) =========
+    public UserEntity getShip() { return ship; }
+    public FortressEntity getFortress() { return fortress; }
+    public List<Entity> getEntities() { return entities; }
+
+    public void addEntity(Entity e) { entities.add(e); }
+    public void removeEntity(Entity e) { removeList.add(e); }
+
+    public long getStageStartTime() { return stageStartTime; }
+    public int getCurrentStage() { return currentStage; }
+
+    public int getAlienCount() { return alienCount; }
+    public void setAlienCount(int count) { alienCount = count; }
+
+    public int getBaseTimeLimit() { return BASE_TIME_LIMIT; }
+    public int getLifeLimit() { return LIFE_LIMIT; }
+
+    public Shop getShop() { return this.shop; }
 }

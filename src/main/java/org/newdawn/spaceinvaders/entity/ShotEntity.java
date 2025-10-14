@@ -63,13 +63,13 @@ public class ShotEntity extends Entity {
 		}
 		
 		// if we've hit an alien, damage it!
-		if (other instanceof AlienEntity) {
+		if (other instanceof MonsterEntity) {
 			// remove this shot
 			game.removeEntity(this);
 			used = true;
 			
 			// damage the alien
-			AlienEntity alien = (AlienEntity) other;
+			MonsterEntity alien = (MonsterEntity) other;
 			if (alien.takeDamage(this.attackPower)) {
 				// if the alien died from this shot
 				game.removeEntity(alien);

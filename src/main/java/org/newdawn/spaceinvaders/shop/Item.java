@@ -1,5 +1,5 @@
 package org.newdawn.spaceinvaders.shop;
-import org.newdawn.spaceinvaders.entity.ShipEntity;
+import org.newdawn.spaceinvaders.entity.UserEntity;
 
 public abstract class Item {
     private String name;
@@ -25,5 +25,5 @@ public abstract class Item {
     }
 
     // 아이템 효과를 플레이어에게 적용하는 추상 메서드
-    public abstract void applyEffect(ShipEntity ship);
+    public abstract void applyEffect(UserEntity ship);
 }
