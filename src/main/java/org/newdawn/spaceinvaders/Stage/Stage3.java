@@ -86,7 +86,7 @@ public class Stage3 implements Stage {
         }
 
         // 🔹 60초 이후 보스 등장 (한 번만)
-        if (elapsedSec >= 60 && !bossSpawned) {
+        if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss3(game, 350, 120));
             bossSpawned = true;
             System.out.println("⚡ [Stage3] 보스 등장! (Boss3 생성 완료)");

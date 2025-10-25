@@ -96,7 +96,7 @@ public class Stage4 implements Stage {
         }
 
         // 🔹 보스 등장 (한 번만)
-        if (elapsedSec >= 60 && !bossSpawned) {
+        if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss4(game, 350, 120));
             bossSpawned = true;
             System.out.println("⚡ [Stage4] 보스 등장! (Boss4 생성 완료)");

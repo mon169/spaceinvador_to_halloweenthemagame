@@ -17,14 +17,15 @@ import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
 /**
- *   Stage 5 Boss: 뱀파이어
+ * Stage 5 Boss: 뱀파이어
  * - 박쥐 공격 + 화면 어둡게 만들어서 안보이게 한 뒤 기습공격
  * - 체력이 줄수록 공격 속도 증가
  * - 한글 폰트 정상 출력
+ * - 암전 중 유저 주변만 원형으로 밝게 표시
  */
 public class Boss5 extends MonsterEntity {
     private final Game game;
-    private int health = 1000;
+    private int health = 10;
     private boolean enraged = false;
 
     // 박쥐 공격 + 암전 패턴 관련
@@ -70,8 +71,8 @@ public class Boss5 extends MonsterEntity {
         sprite = spriteRight;
 
         batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
-        batSprites.add(SpriteStore.get().getSprite("sprites/bat2.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/dark_flash.png");
+        batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
+        flashSprite = SpriteStore.get().getSprite("sprites/bat1.png");
     }
 
     @Override
@@ -196,13 +197,29 @@ public class Boss5 extends MonsterEntity {
         g2.drawImage(img, (int)x - 40, (int)y - 40, null);
         g2.setTransform(oldTransform);
 
-        // 🌑 어둠 이펙트 (화면 암전 + 박쥐)
+        // 🌑 어둠 이펙트 (화면 암전 + 유저 주변 밝게 + 박쥐)
         if (usingDark) {
             double t = (System.currentTimeMillis() % 300) / 300.0;
             int alpha = (int)(150 + 100 * Math.sin(t * Math.PI * 2));
-            g2.setColor(new Color(0, 0, 0, Math.min(alpha, 220)));
+            alpha = Math.min(alpha, 230);
+
+            // 반투명 검정 배경
+            g2.setColor(new Color(0, 0, 0, alpha));
             g2.fillRect(0, 0, 800, 600);
 
+            // 🌕 유저 주변 밝은 원 (시야 효과)
+            if (game.getShip() != null) {
+                int shipX = (int) game.getShip().getX();
+                int shipY = (int) game.getShip().getY();
+                int radius = 180; // 시야 반경
+
+                java.awt.Composite oldComp = g2.getComposite();
+                g2.setComposite(java.awt.AlphaComposite.DstOut);
+                g2.fillOval(shipX - radius, shipY - radius, radius * 2, radius * 2);
+                g2.setComposite(oldComp);
+            }
+
+            // 🦇 박쥐 이미지
             for (Sprite s : batSprites) {
                 int lx = (int)(Math.random() * 750);
                 int ly = (int)(Math.random() * 400);

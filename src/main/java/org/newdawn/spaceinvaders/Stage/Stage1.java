@@ -85,7 +85,7 @@ public class Stage1 implements Stage {
         }
 
         // 60초 이후 보스1(프랑켄슈타인) 등장 (한 번만)
-        if (elapsedSec >= 60 && !bossSpawned) {
+        if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss1(game, 350, 120));
             bossSpawned = true;
             System.out.println("⚡ 프랑켄슈타인 보스 등장!");

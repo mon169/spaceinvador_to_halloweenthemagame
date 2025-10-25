@@ -24,7 +24,7 @@ import org.newdawn.spaceinvaders.entity.MonsterEntity;
  */
 public class Boss3 extends MonsterEntity {
     private final Game game;
-    private int health = 1000;
+    private int health = 10;
     private boolean enraged = false;
 
     // 붕대 휘감기 궁극기 관련
@@ -69,10 +69,10 @@ public class Boss3 extends MonsterEntity {
         spriteRight = SpriteStore.get().getSprite("sprites/mummyr.png");
         sprite = spriteRight;
 
-        bandageSprites.add(SpriteStore.get().getSprite("sprites/bandage1.png"));
-        bandageSprites.add(SpriteStore.get().getSprite("sprites/bandage2.png"));
-        bandageSprites.add(SpriteStore.get().getSprite("sprites/bandage3.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/bandage_flash.png");
+        bandageSprites.add(SpriteStore.get().getSprite("sprites/bug.png"));
+        bandageSprites.add(SpriteStore.get().getSprite("sprites/bug.png"));
+        bandageSprites.add(SpriteStore.get().getSprite("sprites/bug.png"));
+        flashSprite = SpriteStore.get().getSprite("sprites/bug.png");
     }
 
     @Override

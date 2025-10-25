@@ -90,7 +90,7 @@ public class Stage2 implements Stage {
         }
 
         // 🔹 60초 이후 보스 등장 (한 번만)
-        if (elapsedSec >= 60 && !bossSpawned) {
+        if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss2(game, 350, 120));
             bossSpawned = true;
             System.out.println("⚡ [Stage2] 보스 등장! (Boss2 생성 완료)");

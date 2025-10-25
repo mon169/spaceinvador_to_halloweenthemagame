@@ -99,7 +99,7 @@ public class Stage5 implements Stage {
         }
 
         // 🔹 최종 보스 등장 (한 번만)
-        if (elapsedSec >= 60 && !bossSpawned) {
+        if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss5(game, 350, 120));
             bossSpawned = true;
             System.out.println("🩸 [Stage5] 최종 보스 등장! (Boss5 생성 완료)");
