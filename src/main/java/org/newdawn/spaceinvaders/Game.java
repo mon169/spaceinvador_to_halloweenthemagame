@@ -162,6 +162,10 @@ public class Game extends Canvas
 		return ship;
 	}
 	
+	// 사운드 효과 및 배경음 변수 선언
+	private SoundEffect startBgm, gameBgm, clickSfx;
+	private boolean startBgmPlaying = false, gameBgmPlaying = false;
+
 	/**
 	 * Construct our game and set it running.
 	 */
