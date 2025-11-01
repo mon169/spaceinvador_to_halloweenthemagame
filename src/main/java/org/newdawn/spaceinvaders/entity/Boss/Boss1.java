@@ -1,4 +1,4 @@
-package org.newdawn.spaceinvaders.entity;
+package org.newdawn.spaceinvaders.entity.Boss;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -8,19 +8,23 @@ import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
+import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
 /**
- * Stage 1 Boss: 프랑켄슈타인 엔티티
- * - 전기 궁극기(화면 흔들림 포함) 기능
- * - 체력이 줄어들수록 공격 속도가 증가함
- * - HP가 숫자로 표시되며 한글 폰트 지원
+ *   Stage 1 Boss: 프랑켄슈타인
+ * - 전기 궁극기 + 화면 흔들림 + HP 숫자
+ * - 체력이 줄수록 공격 속도 증가
+ * - 한글 폰트 정상 출력
  */
-public class FrankenBossEntity extends AlienEntity {
+public class Boss1 extends MonsterEntity {
     private final Game game;
-    private int health = 1500; // 체력 복원 (1500)
+    private int health = 10; // ✅ 체력 복원 (1000 → 1500)
     private boolean enraged = false;
 
     // 전기 궁극기 관련
@@ -56,7 +60,7 @@ public class FrankenBossEntity extends AlienEntity {
     private long lastShotTime = 0;
     private long shotInterval = 3000; // 기본 3초 간격
 
-    public FrankenBossEntity(Game game, int x, int y) {
+    public Boss1(Game game, int x, int y) {
         super(game, x, y);
         this.game = game;
         this.baseY = y;
@@ -118,7 +122,7 @@ public class FrankenBossEntity extends AlienEntity {
         updateShotInterval();
         if (!usingElectric && now - lastShotTime >= shotInterval) {
             lastShotTime = now;
-            fireShot();
+            fireShot(); // MonsterEntity 메서드
         }
     }
 
@@ -175,8 +179,7 @@ public class FrankenBossEntity extends AlienEntity {
 
     @Override
     public void collidedWith(Entity other) {
-        // 적 총알이나 다른 외계인과는 충돌 무시
-        if (other instanceof EnemyShotEntity || other instanceof AlienEntity) return;
+        if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
     }
 
     @Override
@@ -229,12 +232,12 @@ public class FrankenBossEntity extends AlienEntity {
         g2.setColor(Color.red);
         g2.fillRect((int)x - 50, (int)y - 70, 100, 6);
         g2.setColor(Color.green);
-        int hpWidth = (int)(100 * (health / 1500.0)); // HP 1500 기준 계산
+        int hpWidth = (int)(100 * (health / 1000.0)); // ✅ HP 1000 기준 계산
         g2.fillRect((int)x - 50, (int)y - 70, hpWidth, 6);
 
         // HP 숫자 표시 (한글 폰트 적용)
         g2.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         g2.setColor(Color.white);
-        g2.drawString(health + " / 1500", (int)x - 25, (int)y - 80);
+        g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
     }
 }

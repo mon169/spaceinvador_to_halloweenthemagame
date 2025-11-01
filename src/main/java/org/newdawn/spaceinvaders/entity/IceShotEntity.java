@@ -5,12 +5,12 @@ import org.newdawn.spaceinvaders.Game;
 /**
  * 플레이어의 얼음 공격 - 유령을 잠시 얼림
  */
-public class IceEntity extends Entity {
+public class IceShotEntity extends Entity {
     private Game game;
     private double moveSpeed = -300;
     private int freezeDuration = 3000; 
 
-    public IceEntity(Game game, String ref, int x, int y) {
+    public IceShotEntity(Game game, String ref, int x, int y) {
         super(ref, x, y);
         this.game = game;
     }
@@ -24,8 +24,8 @@ public class IceEntity extends Entity {
     }
 
     public void collidedWith(Entity other) {
-        if (other instanceof AlienEntity) {
-            AlienEntity alien = (AlienEntity) other;
+        if (other instanceof MonsterEntity) {
+            MonsterEntity alien = (MonsterEntity) other;
             alien.freeze(freezeDuration);
             game.removeEntity(this);
         }

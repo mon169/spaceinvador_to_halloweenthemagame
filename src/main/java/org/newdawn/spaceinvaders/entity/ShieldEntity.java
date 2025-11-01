@@ -10,13 +10,13 @@ import org.newdawn.spaceinvaders.Game;
  */
 public class ShieldEntity extends Entity {
     private final Game game;
-    private final ShipEntity ship;
-    private final int duration;      
-    private final long endTime;      
+    private final UserEntity ship;
+    private final int duration;      // 방어막 지속 시간 (ms)
+    private final long endTime;      // 종료 시간
     private boolean active = false;
 
-    public ShieldEntity(Game game, ShipEntity ship, int duration) {
-        // 방어막 위치 설정
+    public ShieldEntity(Game game, UserEntity ship, int duration) {
+        // ship의 중심 위치 기준으로 생성
         super("sprites/shield.png",
               ship.getX() + ship.sprite.getWidth() / 2 - 24,
               ship.getY() + ship.sprite.getHeight() / 2 - 48);

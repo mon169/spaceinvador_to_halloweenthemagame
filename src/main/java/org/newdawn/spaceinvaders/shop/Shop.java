@@ -1,5 +1,5 @@
 package org.newdawn.spaceinvaders.shop;
-import org.newdawn.spaceinvaders.entity.ShipEntity;
+import org.newdawn.spaceinvaders.entity.UserEntity;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +19,7 @@ public class Shop {
             200
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.setFiringInterval((long)(ship.getFiringInterval() * 0.9));
             }
         });
@@ -31,7 +31,7 @@ public class Shop {
             150
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.setMoveSpeed(ship.getMoveSpeed() * 1.1);
             }
         });
@@ -43,7 +43,7 @@ public class Shop {
             300
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.increaseDefense(2);
             }
         });
@@ -55,7 +55,7 @@ public class Shop {
             250
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.increaseAttackPower(1);
             }
         });
@@ -67,7 +67,7 @@ public class Shop {
             350
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.increaseMaxHealth(20);
             }
         });
@@ -79,7 +79,7 @@ public class Shop {
             200
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.giveBomb();
             }
         });
@@ -91,7 +91,7 @@ public class Shop {
             150
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.giveIceWeapon();
             }
         });
@@ -103,14 +103,14 @@ public class Shop {
             400
         ) {
             @Override
-            public void applyEffect(ShipEntity ship) {
+            public void applyEffect(UserEntity ship) {
                 ship.giveShield(); // 방어막을 인벤토리에 추가
             }
         });
     }
 
     // 아이템 구매 로직
-    public void purchaseItem(ShipEntity playerShip, int itemIndex) {
+    public void purchaseItem(UserEntity playerShip, int itemIndex) {
         if (itemIndex < 0 || itemIndex >= itemsForSale.size()) {
             System.out.println("잘못된 상품 번호입니다.");
             return;
