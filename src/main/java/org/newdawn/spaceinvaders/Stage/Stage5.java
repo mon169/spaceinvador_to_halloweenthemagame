@@ -43,7 +43,9 @@ public class Stage5 implements Stage {
 
         for (int row = 0; row < 2; row++) {
             for (int x = 0; x < count; x++) {
-                game.addEntity(new ObstacleEntity(game, x * w, 380 + row * 40));
+                // 1줄째: onestep, 2줄째: twostep 사용
+                String group = (row == 0) ? "onestep" : "twostep";
+                game.addEntity(new ObstacleEntity(game, x * w, 380 + row * 40, group));
             }
         }
 
@@ -83,19 +85,6 @@ public class Stage5 implements Stage {
             }
             lastAlienShotTime = now;
             System.out.println("🧊 [Stage5] ICE 몬스터 생성");
-        }
-
-        // 🔹 Bomb 몬스터 생성 (80초 이후)
-        if (elapsedSec >= 80 && now - lastAlienShotTime > 10000) {
-            MonsterEntity m = new MonsterEntity(
-                game,
-                350 + (int)(Math.random() * 100 - 50),
-                150
-            );
-            m.setShotType("bombshot");
-            game.addEntity(m);
-            lastAlienShotTime = now;
-            System.out.println("💣 [Stage5] BOMB 몬스터 생성");
         }
 
         // 🔹 최종 보스 등장 (한 번만)

@@ -34,8 +34,8 @@ public class SpriteStore {
 		return single;
 	}
 	
-	/** The cached sprite map, from reference to sprite instance */
-	private HashMap sprites = new HashMap();
+    /** The cached sprite map, from reference to sprite instance */
+    private HashMap<String, Sprite> sprites = new HashMap<String, Sprite>();
 	
 	/**
 	 * Retrieve a sprite from the store
@@ -43,44 +43,48 @@ public class SpriteStore {
 	 * @param ref The reference to the image to use for the sprite
 	 * @return A sprite instance containing an accelerate image of the request reference
 	 */
-	public Sprite getSprite(String ref) {
+    public Sprite getSprite(String ref) {
 		// if we've already got the sprite in the cache
 		// then just return the existing version
-		if (sprites.get(ref) != null) {
-			return (Sprite) sprites.get(ref);
+        if (sprites.get(ref) != null) {
+            return sprites.get(ref);
 		}
 		
 		// otherwise, go away and grab the sprite from the resource
 		// loader
 		BufferedImage sourceImage = null;
 		
-		try {
+        try {
 			// The ClassLoader.getResource() ensures we get the sprite
 			// from the appropriate place, this helps with deploying the game
 			// with things like webstart. You could equally do a file look
 			// up here.
 			URL url = this.getClass().getClassLoader().getResource(ref);
 			
-			if (url == null) {
-				fail("Can't find ref: "+ref);
-			}
-			
-			// use ImageIO to read the image in
-			sourceImage = ImageIO.read(url);
+            if (url == null) {
+                System.err.println("Can't find ref: " + ref + " — using placeholder sprite");
+            } else {
+                // use ImageIO to read the image in
+                sourceImage = ImageIO.read(url);
+            }
 		} catch (IOException e) {
-			fail("Failed to load: "+ref);
+            System.err.println("Failed to load: " + ref + " — using placeholder sprite");
 		}
 		
-		// create an accelerated image of the right size to store our sprite in
-		GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
-		Image image = gc.createCompatibleImage(sourceImage.getWidth(),sourceImage.getHeight(),Transparency.BITMASK);
+        // create an accelerated image (original size if available, otherwise 1x1 placeholder)
+        GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
+        int width = (sourceImage != null) ? sourceImage.getWidth() : 1;
+        int height = (sourceImage != null) ? sourceImage.getHeight() : 1;
+        Image image = gc.createCompatibleImage(width, height, Transparency.BITMASK);
 		
 		// draw our source image into the accelerated image
-		image.getGraphics().drawImage(sourceImage,0,0,null);
+        if (sourceImage != null) {
+            image.getGraphics().drawImage(sourceImage,0,0,null);
+        }
 		
 		// create a sprite, add it the cache then return it
 		Sprite sprite = new Sprite(image);
-		sprites.put(ref,sprite);
+        sprites.put(ref, sprite);
 		
 		return sprite;
 	}
@@ -90,10 +94,5 @@ public class SpriteStore {
 	 * 
 	 * @param message The message to display on failure
 	 */
-	private void fail(String message) {
-		// we're pretty dramatic here, if a resource isn't available
-		// we dump the message and exit the game
-		System.err.println(message);
-		System.exit(0);
-	}
+    // removed: fail(String) — use stderr logs above instead
 }

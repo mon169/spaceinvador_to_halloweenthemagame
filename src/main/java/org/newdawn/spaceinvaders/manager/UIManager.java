@@ -82,15 +82,72 @@ public class UIManager {
             }
             if (ship.hasBomb())  { g.drawString("• 폭탄 x" + ship.getBombCount() + " (B키)", 20, y); y += 20; }
             if (ship.hasIceWeapon()) { g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount() + " (I키)", 20, y); y += 20; }
-            if (ship.hasShield()) { g.drawString("• 방어막 x" + ship.getShieldCount() + " (S키)", 20, y); }
+            if (ship.hasShield()) { 
+                g.drawString("• 방어막 x" + ship.getShieldCount() + " (S키: 요새 보호)", 20, y); 
+            }
         }
         if (fortress != null) {
             g.drawString("요새 HP: " + fortress.getHP(), 20, 150);
         }
 
+        // 오른쪽 상단에 보유 아이템 목록 표시
+        if (ship != null) {
+            drawInventoryList(g, ship);
+        }
+
         // Stage3 생명제한
         if (game.getCurrentStage() == 3 && ship != null && ship.getHealth() <= game.getLifeLimit()) {
             game.notifyDeath();
+        }
+    }
+
+    /** 오른쪽 상단에 보유 아이템 목록을 표시 */
+    private void drawInventoryList(Graphics2D g, UserEntity ship) {
+        int startX = 600;  // 오른쪽 상단 시작 X 좌표
+        int startY = 30;   // 상단에서 시작
+        int lineHeight = 18;
+        
+        g.setColor(new Color(0, 0, 0, 180)); // 반투명 검은 배경
+        g.fillRect(startX - 10, startY - 20, 190, 150);
+        
+        g.setColor(Color.white);
+        g.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        g.drawString("[ 보유 아이템 ]", startX, startY);
+        
+        g.setFont(new Font("맑은 고딕", Font.BOLD, 14)); // 폰트 크기 증가
+        int y = startY + lineHeight + 5;
+        
+        // 폭탄
+        if (ship.getBombCount() > 0) {
+            g.setColor(new Color(255, 165, 0)); // 더 진한 주황색
+            g.drawString("• 폭탄 x" + ship.getBombCount(), startX, y);
+            y += lineHeight + 3;
+        }
+        
+        // 얼음 공격
+        if (ship.getIceWeaponCount() > 0) {
+            g.setColor(new Color(0, 255, 255)); // 더 진한 청록색
+            g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount(), startX, y);
+            y += lineHeight + 3;
+        }
+        
+        // 방어막
+        if (ship.getShieldCount() > 0) {
+            g.setColor(new Color(255, 255, 0)); // 더 진한 노란색
+            g.drawString("• 방어막 x" + ship.getShieldCount(), startX, y);
+            y += lineHeight + 3;
+            // 사용법 안내
+            g.setColor(new Color(200, 200, 200)); // 더 밝은 회색
+            g.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+            g.drawString("  (S키: 요새 보호)", startX + 5, y);
+            y += 18;
+            g.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+        }
+        
+        // 아이템이 없을 때
+        if (ship.getBombCount() == 0 && ship.getIceWeaponCount() == 0 && ship.getShieldCount() == 0) {
+            g.setColor(Color.gray);
+            g.drawString("보유한 아이템 없음", startX, y);
         }
     }
 

@@ -24,7 +24,7 @@ import org.newdawn.spaceinvaders.entity.MonsterEntity;
  */
 public class Boss1 extends MonsterEntity {
     private final Game game;
-    private int health = 1000; // ✅ 체력 복원 (1000 → 1500)
+    private int health = 1; // 임시: 테스트용 (한 대 맞으면 죽음)
     private boolean enraged = false;
 
     // 전기 궁극기 관련

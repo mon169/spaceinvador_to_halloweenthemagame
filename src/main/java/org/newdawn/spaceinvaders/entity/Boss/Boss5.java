@@ -24,7 +24,7 @@ import org.newdawn.spaceinvaders.entity.MonsterEntity;
  */
 public class Boss5 extends MonsterEntity {
     private final Game game;
-    private int health = 1000;
+    private int health = 1; // 임시: 테스트용 (한 대 맞으면 죽음)
     private boolean enraged = false;
 
     // 박쥐 공격 + 암전 패턴 관련

@@ -84,10 +84,12 @@ public class Stage1 implements Stage {
             System.out.println("💣 BOMB 몬스터 생성 (10초 주기)");
         }
 
-        // 60초 이후 보스1(프랑켄슈타인) 등장 (한 번만)
-        if (elapsedSec >= 60 && !bossSpawned) {
+        // 10초 이후 보스1(프랑켄슈타인) 등장 (한 번만)
+        if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss1(game, 350, 120));
             bossSpawned = true;
+            // 보스 등장 시 배경을 franken.png로 변경
+            game.setBackground("bg/franken.png");
             System.out.println("⚡ 프랑켄슈타인 보스 등장!");
         }
     }

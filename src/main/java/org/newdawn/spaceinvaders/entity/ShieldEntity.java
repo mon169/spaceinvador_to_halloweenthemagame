@@ -3,26 +3,27 @@ package org.newdawn.spaceinvaders.entity;
 import org.newdawn.spaceinvaders.Game;
 
 /**
- * 🛡 ShipEntity의 방어막(Shield) 엔티티
- * - 일정 시간 동안 유지되며, 적의 총알(EnemyShotEntity)을 차단한다.
- * - 총알은 사라지지만 방어막은 즉시 사라지지 않는다.
- * - 💫 onBlocked() 메서드 추가: 총알 차단 시 효과/로그용
+ * 🛡 요새 방어막 엔티티 (ShieldEntity)
+ * - barrier.png를 사용하여 요새를 보호합니다
+ * - candybucket.png보다 크게 표시되어 요새를 감싸는 효과
+ * - 적 공격 1회 또는 몬스터 충돌 1회 방어 후 즉시 소멸
+ * - 지속시간 동안 유지되지만, 충돌 시 즉시 제거됨
  */
 public class ShieldEntity extends Entity {
     private final Game game;
-    private final UserEntity ship;
+    private final FortressEntity fortress;
     private final int duration;      // 방어막 지속 시간 (ms)
     private final long endTime;      // 종료 시간
     private boolean active = false;
 
-    public ShieldEntity(Game game, UserEntity ship, int duration) {
-        // ship의 중심 위치 기준으로 생성
-        super("sprites/shield.png",
-              ship.getX() + ship.sprite.getWidth() / 2 - 24,
-              ship.getY() + ship.sprite.getHeight() / 2 - 48);
-
+    public ShieldEntity(Game game, FortressEntity fortress, int duration) {
+        // fortress의 중심 위치 기준으로 생성
+        super("sprites/barrier.png",
+              fortress.getX() + fortress.getWidth() / 2 - 50,
+              fortress.getY() + fortress.getHeight() / 2 - 50);
+        
         this.game = game;
-        this.ship = ship;
+        this.fortress = fortress;
         this.duration = duration;
         this.endTime = System.currentTimeMillis() + duration;
         this.active = true;
@@ -30,9 +31,18 @@ public class ShieldEntity extends Entity {
 
     @Override
     public void move(long delta) {
-        // 🚀 ship 위치 따라다니기
-        this.x = ship.getX() + ship.sprite.getWidth() / 2 - sprite.getWidth() / 2;
-        this.y = ship.getY() + ship.sprite.getHeight() / 2 - sprite.getHeight() / 2;
+        // 🚀 fortress 위치 따라다니기
+        // FortressEntity는 scale 0.65로 그려지므로 실제 표시 크기 계산
+        double fortressScale = 0.65;
+        int fortressActualWidth = (int)(fortress.getWidth() * fortressScale);
+        int fortressActualHeight = (int)(fortress.getHeight() * fortressScale);
+        
+        int fortressCenterX = fortress.getX() + fortressActualWidth / 2;
+        int fortressCenterY = fortress.getY() + fortressActualHeight / 2;
+        
+        // barrier.png가 candybucket.png보다 크게 보이도록 중심 맞춤
+        this.x = fortressCenterX - sprite.getWidth() / 2;
+        this.y = fortressCenterY - sprite.getHeight() / 2;
 
         // ⏱ 지속시간 끝나면 자동 제거
         if (System.currentTimeMillis() > endTime) {
@@ -43,21 +53,35 @@ public class ShieldEntity extends Entity {
 
     @Override
     public void collidedWith(Entity other) {
-        // 적 총알과 충돌 시 총알 제거, 방어막은 유지
+        // 🛡 적 총알 또는 몬스터 충돌 시 1회 방어 후 방어막 제거
         if (other instanceof EnemyShotEntity) {
             EnemyShotEntity shot = (EnemyShotEntity) other;
             onBlocked(shot);               // 💫 효과용 콜백
             shot.setBlockedByShield();     // 총알에 "막혔다" 표시
             game.removeEntity(shot);       // 총알 제거
-            // ❗ 방어막은 지속시간 동안 유지됨
+            game.removeEntity(this);       // 방어막도 제거 (1회 방어만 가능)
+            active = false;
+            System.out.println("🛡 방어막이 적 공격을 막았습니다! (방어막 소멸)");
+        }
+        // 🛡 몬스터와 충돌 시 몬스터 제거, 방어막도 제거 (1회 방어)
+        if (other instanceof MonsterEntity) {
+            MonsterEntity monster = (MonsterEntity) other;
+            onBlockedMonster(monster);     // 💫 효과용 콜백
+            game.removeEntity(monster);    // 몬스터 제거
+            game.removeEntity(this);       // 방어막도 제거 (1회 방어만 가능)
+            active = false;
+            System.out.println("🛡 방어막이 몬스터 충돌을 막았습니다! (방어막 소멸)");
         }
     }
 
     /** 💥 총알이 방어막에 막혔을 때 호출되는 콜백 */
     public void onBlocked(EnemyShotEntity shot) {
-        // 🔊 시각 효과나 로그를 여기에 넣을 수 있음
-        System.out.println("🛡 방어막이 " + shot.getShotKind() + " 차단!");
-        // 💡 추후 spark 이펙트나 사운드 추가 가능
+        System.out.println("🛡 요새 방어막이 " + shot.getShotKind() + " 차단!");
+    }
+
+    /** 💥 몬스터가 방어막에 막혔을 때 호출되는 콜백 */
+    public void onBlockedMonster(MonsterEntity monster) {
+        System.out.println("🛡 요새 방어막이 몬스터 충돌을 차단!");
     }
 
     @Override
@@ -65,23 +89,29 @@ public class ShieldEntity extends Entity {
         if (sprite == null) return;
         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g;
 
-        // 💫 방어막 지속시간에 따라 투명도 변화
-        long now = System.currentTimeMillis();
-        float progress = Math.max(0f, Math.min(1f, (endTime - now) / (float) duration));
-        float alpha = 0.3f + 0.4f * progress; // 남은 시간에 따라 점점 희미해짐
+        // 💫 방어막 완전 불투명 (투명도 100%)
+        float alpha = 1.0f; // 완전 불투명
 
         java.awt.AlphaComposite ac = java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, alpha);
         g2.setComposite(ac);
 
-        // 방어막 그리기 (약간 확대 효과)
-        double scale = 1.2;
+        // barrier.png를 candybucket.png보다 크게 표시
+        // candybucket은 0.65 scale이므로, barrier는 그것보다 크게 (약 0.225배)
+        double scale = 0.225;
         int newW = (int) (sprite.getWidth() * scale);
         int newH = (int) (sprite.getHeight() * scale);
         java.awt.Image scaled = sprite.getImage().getScaledInstance(newW, newH, java.awt.Image.SCALE_SMOOTH);
-        g2.drawImage(scaled,
-                (int) x - (newW - sprite.getWidth()) / 2,
-                (int) y - (newH - sprite.getHeight()) / 2,
-                null);
+        
+        // 요새 중심에 맞춰 그리기
+        double fortressScale = 0.65;
+        int fortressActualWidth = (int)(fortress.getWidth() * fortressScale);
+        int fortressActualHeight = (int)(fortress.getHeight() * fortressScale);
+        int fortressCenterX = fortress.getX() + fortressActualWidth / 2;
+        int fortressCenterY = fortress.getY() + fortressActualHeight / 2;
+        int drawX = fortressCenterX - newW / 2;
+        int drawY = fortressCenterY - newH / 2;
+        
+        g2.drawImage(scaled, drawX, drawY, null);
 
         g2.setComposite(java.awt.AlphaComposite.SrcOver);
     }

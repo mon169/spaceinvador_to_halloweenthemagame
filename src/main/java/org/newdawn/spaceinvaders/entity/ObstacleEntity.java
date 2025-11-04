@@ -13,17 +13,54 @@ public class ObstacleEntity extends Entity {
     private int stage; // 장애물 단계 (1~4)
     private int hitCount = 0;
     private static final int[] hitToNextStage = {2, 2, 2, 2}; // 각 단계별 필요 타격 수
-    private static final String[] spriteNames = {
-        "sprites/obstacle1.png",
-        "sprites/obstacle2.png",
-        "sprites/obstacle3.png",
-        "sprites/obstacle4.png"
+    
+    // 그룹별(캔디월 단계별) 4프레임 이미지 경로
+    // onestep: obstacle1 대체, twostep: obstacle2 대체
+    private static final String[][] GROUP_TO_FRAMES = new String[][]{
+        // onestep
+        {
+            "sprites/candywall/onestep/candy_spritesheet_4x1.jpg",
+            "sprites/candywall/onestep/candy_spritesheet_4x1 2.jpg",
+            "sprites/candywall/onestep/candy_spritesheet_4x1 3.jpg",
+            "sprites/candywall/onestep/candy_spritesheet_4x1 4.jpg"
+        },
+        // twostep
+        {
+            "sprites/candywall/twostep/Pixel candy.png",
+            "sprites/candywall/twostep/Pixel candy 2.png",
+            "sprites/candywall/twostep/Pixel candy 3.png",
+            "sprites/candywall/twostep/Pixel candy 4.png"
+        }
     };
+    
+    // 현재 장애물이 사용할 프레임 세트 (기본 onestep)
+    private String[] frames = GROUP_TO_FRAMES[0];
 
     public ObstacleEntity(Game game, int x, int y) {
-        super(spriteNames[0], x, y);
+        super(GROUP_TO_FRAMES[0][0], x, y);
         this.game = game;
         this.stage = 1;
+    }
+    
+    /**
+     * 특정 그룹을 명시하는 생성자 ("onestep" | "twostep")
+     */
+    public ObstacleEntity(Game game, int x, int y, String group) {
+        super(selectGroupFrames(group)[0], x, y);
+        this.game = game;
+        this.stage = 1;
+        this.frames = selectGroupFrames(group);
+    }
+    
+    private static String[] selectGroupFrames(String group) {
+        if (group == null) return GROUP_TO_FRAMES[0];
+        switch (group.toLowerCase()) {
+            case "twostep":
+                return GROUP_TO_FRAMES[1];
+            case "onestep":
+            default:
+                return GROUP_TO_FRAMES[0];
+        }
     }
 
     @Override
@@ -37,7 +74,7 @@ public class ObstacleEntity extends Entity {
                 if (stage > 4) {
                     game.removeEntity(this); // 장애물 제거
                 } else {
-                    this.sprite = SpriteStore.get().getSprite(spriteNames[stage-1]);
+                    this.sprite = SpriteStore.get().getSprite(frames[stage-1]);
                 }
             }
             game.removeEntity(other); // 총알 제거

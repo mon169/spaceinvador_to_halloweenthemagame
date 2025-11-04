@@ -157,7 +157,10 @@ public class UserEntity extends Entity {
         return false;
     }
 
-    public void spendMoney(int amount) { this.money -= amount; }
+    public void spendMoney(int amount) { 
+        // 임시: 골드 무한 모드 (테스트용)
+        // this.money -= amount; 
+    }
     public void earnMoney(int amount)  { this.money += amount; }
     public int getMoney()              { return money; }
 
@@ -192,12 +195,13 @@ public class UserEntity extends Entity {
         }
     }
 
+    /** 요새 방어막 활성화 */
     public void activateShield() {
-        if (shieldCount > 0) {
-            int duration = Math.max(3000, defense * 1000);
-            game.addEntity(new ShieldEntity(game, this, duration));
+        if (shieldCount > 0 && game.getFortress() != null) {
+            int duration = Math.max(5000, defense * 1000); // 최소 5초, 방어력만큼 초
+            game.addEntity(new ShieldEntity(game, game.getFortress(), duration));
             shieldCount--;
-            System.out.println("🛡 방어막 활성화 (" + duration / 1000 + "초)");
+            System.out.println("🛡 요새 방어막 활성화 (" + duration / 1000 + "초)");
         }
     }
 

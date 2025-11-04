@@ -15,6 +15,7 @@ import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.UserEntity;
 import org.newdawn.spaceinvaders.entity.FortressEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
+import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
@@ -24,7 +25,6 @@ import org.newdawn.spaceinvaders.shop.Shop;
 import org.newdawn.spaceinvaders.manager.EntityManager;
 import org.newdawn.spaceinvaders.manager.BackgroundManager;
 import org.newdawn.spaceinvaders.manager.StageManager;
-import org.newdawn.spaceinvaders.manager.StateManager;
 import org.newdawn.spaceinvaders.manager.InputManager;
 import org.newdawn.spaceinvaders.manager.UIManager;
 
@@ -54,9 +54,9 @@ public class Game extends Canvas {
     private EntityManager entityManager;
     private BackgroundManager backgroundManager;
     private StageManager stageManager;
-    private StateManager stateManager;
     private InputManager inputManager;
     private UIManager uiManager;
+    private org.newdawn.spaceinvaders.manager.RewardManager rewardManager;
 
     // ========= 게임 상태 =========
     private boolean waitingForKeyPress = true;
@@ -80,7 +80,7 @@ public class Game extends Canvas {
     // UI 메시지
     private String message = "";
 
-    // ========= 규칙값 (UIManager가 Game에 물어봄) =========
+    // ========= 규칙값 =========
     private final int BASE_TIME_LIMIT = 150; // ⏱ 기본 150초
     private final int LIFE_LIMIT = 3;        // Stage3 제한 체력
 
@@ -129,9 +129,9 @@ public class Game extends Canvas {
         entityManager = new EntityManager(this, entities, removeList);
         backgroundManager = new BackgroundManager();
         uiManager = new UIManager(this);
-        stateManager = new StateManager(this, uiManager);
         stageManager = new StageManager(this, entityManager);
         inputManager = new InputManager(this);
+        rewardManager = new org.newdawn.spaceinvaders.manager.RewardManager();
         addKeyListener(inputManager);
 
         bg = SpriteStore.get().getSprite("bg/level1_background.jpg");
@@ -150,6 +150,7 @@ public class Game extends Canvas {
 
         // 스테이지 로드
         stageManager.loadStage(currentStage);
+        updateBackgroundForStage(currentStage);
     }
 
     // ========= 메인 루프 =========
@@ -200,6 +201,11 @@ public class Game extends Canvas {
                     shopOpen,
                     waitingForKeyPress
                 );
+
+                // 보상 메시지 렌더링 (우상단 토스트)
+                if (rewardManager != null) {
+                    rewardManager.drawRewardMessages(g);
+                }
 
                 g.dispose();
                 strategy.show();
@@ -265,6 +271,7 @@ public class Game extends Canvas {
         entities.add(fortress);
 
         stageManager.loadStage(currentStage);
+        updateBackgroundForStage(currentStage);
 
         leftPressed = rightPressed = firePressed = false;
         waitingForKeyPress = false;
@@ -281,6 +288,48 @@ public class Game extends Canvas {
         }
         currentStage++;
         startGameOrNextStage(false);
+    }
+
+    // ========= 배경 변경 =========
+    private void updateBackgroundForStage(int stage) {
+        String bgPath;
+        switch (stage) {
+            case 1:
+                // Stage1은 초기에는 기본 배경 사용 (보스 등장 시 franken.png로 변경됨)
+                bgPath = "bg/level1_background.jpg";
+                break;
+            case 2:
+                bgPath = "bg/wbg.jpg";
+                break;
+            case 3:
+                bgPath = "bg/desert.JPG";
+                break;
+            case 4:
+                bgPath = "bg/zombiebg.jpg";
+                break;
+            case 5:
+                bgPath = "bg/bossbg.jpg";
+                break;
+            default:
+                bgPath = "bg/level1_background.jpg";
+                break;
+        }
+        try {
+            bg = SpriteStore.get().getSprite(bgPath);
+            System.out.println("🖼️ Stage " + stage + " 배경 변경: " + bgPath);
+        } catch (Exception e) {
+            System.err.println("⚠️ 배경 로드 실패: " + bgPath + " - " + e.getMessage());
+        }
+    }
+
+    /** 배경을 동적으로 변경하는 public 메서드 */
+    public void setBackground(String bgPath) {
+        try {
+            bg = SpriteStore.get().getSprite(bgPath);
+            System.out.println("🖼️ 배경 변경: " + bgPath);
+        } catch (Exception e) {
+            System.err.println("⚠️ 배경 로드 실패: " + bgPath + " - " + e.getMessage());
+        }
     }
 
     // ========= 이벤트(보스/승패/적 처치) =========
@@ -318,9 +367,12 @@ public class Game extends Canvas {
 
     /** 🔔 적 처치 시(ShotEntity, BombShotEntity 등에서 호출) */
     public void notifyAlienKilled() {
-        alienCount--;
-        if (alienCount < 0) alienCount = 0;
-        System.out.println("👻 남은 적: " + alienCount);
+        System.out.println("👻 적 처치됨 (현재 남은 적: " + alienCount + ")");
+        
+        // 보상 지급
+        if (ship != null && rewardManager != null) {
+            rewardManager.grantReward(ship);
+        }
     }
 
     // ========= 상점 =========
@@ -368,7 +420,7 @@ public class Game extends Canvas {
         System.exit(0);
     }
 
-    // ========= setters (입력용) =========
+    // ========= setters =========
     public void setLeftPressed(boolean v) { leftPressed = v; }
     public void setRightPressed(boolean v) { rightPressed = v; }
     public void setFirePressed(boolean v) { firePressed = v; }
@@ -379,13 +431,32 @@ public class Game extends Canvas {
     public boolean isShopOpenFlag() { return shopOpen; }
     public void setShopOpenFlag(boolean v) { shopOpen = v; }
 
-    // ========= getters (엔티티/매니저/규칙) =========
+    // ========= getters =========
     public UserEntity getShip() { return ship; }
     public FortressEntity getFortress() { return fortress; }
     public List<Entity> getEntities() { return entities; }
 
-    public void addEntity(Entity e) { entities.add(e); }
-    public void removeEntity(Entity e) { removeList.add(e); }
+    // ========= 수정된 엔티티 관리 =========
+    public void addEntity(Entity e) {
+        entities.add(e);
+
+        // 👾 몬스터 추가 시 카운트 증가
+        if (e instanceof MonsterEntity || e.getClass().getSimpleName().equals("BombMonsterEntity")) {
+            alienCount++;
+            System.out.println("👾 몬스터 추가됨: 총 " + alienCount + "마리");
+        }
+    }
+
+    public void removeEntity(Entity e) {
+        removeList.add(e);
+
+        // 👻 몬스터 제거 시 카운트 감소
+        if (e instanceof MonsterEntity || e.getClass().getSimpleName().equals("BombMonsterEntity")) {
+            alienCount--;
+            if (alienCount < 0) alienCount = 0;
+            System.out.println("🧹 몬스터 제거됨: 남은 " + alienCount + "마리");
+        }
+    }
 
     public long getStageStartTime() { return stageStartTime; }
     public int getCurrentStage() { return currentStage; }

@@ -31,7 +31,10 @@ public class InputManager extends KeyAdapter {
                 if (game.getShip() != null && game.getShip().hasIceWeapon()) game.getShip().useIceWeapon();
                 break;
             case KeyEvent.VK_S:
-                if (game.getShip() != null) game.getShip().activateShield();
+                if (game.getShip() != null) {
+                    // S키: 요새 방어막 활성화
+                    game.getShip().activateShield();
+                }
                 break;
 
             case KeyEvent.VK_ESCAPE:
