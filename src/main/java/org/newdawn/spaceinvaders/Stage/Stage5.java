@@ -85,18 +85,6 @@ public class Stage5 implements Stage {
             System.out.println("🧊 [Stage5] ICE 몬스터 생성");
         }
 
-        // 🔹 Bomb 몬스터 생성 (80초 이후)
-        if (elapsedSec >= 80 && now - lastAlienShotTime > 10000) {
-            MonsterEntity m = new MonsterEntity(
-                game,
-                350 + (int)(Math.random() * 100 - 50),
-                150
-            );
-            m.setShotType("bombshot");
-            game.addEntity(m);
-            lastAlienShotTime = now;
-            System.out.println("💣 [Stage5] BOMB 몬스터 생성");
-        }
 
         // 🔹 최종 보스 등장 (한 번만)
         if (elapsedSec >= 10 && !bossSpawned) {

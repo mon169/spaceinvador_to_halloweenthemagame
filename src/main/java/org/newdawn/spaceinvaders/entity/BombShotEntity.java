@@ -13,7 +13,7 @@ import org.newdawn.spaceinvaders.Game;
  *
  * 요구사항:
  * - Game에 아래 메서드가 존재해야 합니다:
- *   List<Entity> getEntities();
+ *   List<Entity> getEntities( );
  *   void removeEntity(Entity e);
  *   void notifyAlienKilled();
  */

@@ -65,8 +65,8 @@ public class Boss4 extends MonsterEntity {
         this.game = game;
         this.baseY = y;
 
-        spriteLeft  = SpriteStore.get().getSprite("sprites/zombiel.png");
-        spriteRight = SpriteStore.get().getSprite("sprites/zombier.png");
+        spriteLeft  = SpriteStore.get().getSprite("sprites/zombil.png");
+        spriteRight = SpriteStore.get().getSprite("sprites/zombir.png");
         sprite = spriteRight;
 
         limbSprites.add(SpriteStore.get().getSprite("sprites/arm1.png"));

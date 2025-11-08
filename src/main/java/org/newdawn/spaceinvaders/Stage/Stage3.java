@@ -1,6 +1,11 @@
 package org.newdawn.spaceinvaders.Stage;
 
+import java.awt.Color;
+import java.awt.Graphics;
+
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.Entity;
+import org.newdawn.spaceinvaders.entity.UserEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 import org.newdawn.spaceinvaders.entity.Boss.Boss3;
 
@@ -15,6 +20,11 @@ public class Stage3 implements Stage {
     private long lastAlienShotTime = 0;
     private boolean bossSpawned = false;
     private final long startMillis;
+    // 모래 폭풍 관련
+    private long lastSandstormTime = 0;
+    private final long SANDSTORM_INTERVAL = 50_000; // 50초
+    private final int SANDSTORM_WIDTH = 320; // 폭을 넓힘 (기존 200 -> 320)
+    private final long SANDSTORM_DURATION = 2000; // 2초
 
     public Stage3(Game game) {
         this.game = game;
@@ -39,8 +49,8 @@ public class Stage3 implements Stage {
 
     @Override
     public void update() {
-        long elapsedSec = (System.currentTimeMillis() - startMillis) / 1000;
-        long now = System.currentTimeMillis();
+    long elapsedSec = (System.currentTimeMillis() - startMillis) / 1000;
+    long now = System.currentTimeMillis();
 
         // 🔹 Normal 몬스터 (5초 주기)
         if (elapsedSec < 60 && now - lastAlienShotTime > 5000) {
@@ -90,6 +100,65 @@ public class Stage3 implements Stage {
             game.addEntity(new Boss3(game, 350, 120));
             bossSpawned = true;
             System.out.println("⚡ [Stage3] 보스 등장! (Boss3 생성 완료)");
+        }
+
+    // 🔹 모래 폭풍: 50초 간격으로 생성, 2초 동안 좌->우로 지나가며 플레이어에게 100 데미지
+        if (now - lastSandstormTime >= SANDSTORM_INTERVAL) {
+            // 중복 생성 방지
+            boolean exists = false;
+            for (Entity e : game.getEntities()) {
+                if (e.getClass().getSimpleName().equals("SandstormEntityStage3")) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                lastSandstormTime = now;
+                final int stormW = SANDSTORM_WIDTH;
+                final long duration = SANDSTORM_DURATION;
+                // 익명 Entity로 모래폭풍 생성 (Stage3 전용)
+                Entity storm = new Entity("sprites/sandstorn.png", -stormW, 0) {
+                    private boolean damaged = false;
+                    private final double dxVal = (800.0 + stormW) / (duration / 1000.0);
+
+                    @Override
+                    public void move(long delta) {
+                        if (this.dx == 0) this.dx = dxVal;
+                        super.move(delta);
+                        if (this.x > 800) {
+                            game.removeEntity(this);
+                        }
+                    }
+
+                    @Override
+                    public void draw(Graphics g) {
+                        // 가능하면 sprites/sandstorn.png 이미지를 전체 높이로 스케일해서 그림
+                        if (this.sprite != null) {
+                            this.sprite.drawScaled(g, (int) x, 0, stormW, game.getHeight());
+                        } else {
+                            Color sand = new Color(194, 178, 128, 180);
+                            g.setColor(sand);
+                            g.fillRect((int) x, 0, stormW, game.getHeight());
+                        }
+                    }
+
+                    @Override
+                    public void collidedWith(Entity other) {
+                        if (damaged) return;
+                        if (other instanceof UserEntity) {
+                            UserEntity user = (UserEntity) other;
+                            user.takeDamage(100 + user.getDefense());
+                            damaged = true;
+                        }
+                    }
+
+                    @Override
+                    public String toString() { return "SandstormEntityStage3"; }
+                };
+
+                game.addEntity(storm);
+                System.out.println("🌪️ [Stage3] 모래 폭풍 발생!");
+            }
         }
 
         // 🔹 생명 제한 모드 (플레이어 체력 3 이하 시 자동 패배)

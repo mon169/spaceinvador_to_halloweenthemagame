@@ -15,6 +15,7 @@ public class Stage4 implements Stage {
     private final Game game;
     private long lastAlienShotTime = 0;
     private boolean bossSpawned = false;
+    private boolean extraBossSpawned = false; // 100초 후 추가 보스 스폰 제어
     private final long startMillis;
 
     public Stage4(Game game) {
@@ -100,6 +101,14 @@ public class Stage4 implements Stage {
             game.addEntity(new Boss4(game, 350, 120));
             bossSpawned = true;
             System.out.println("⚡ [Stage4] 보스 등장! (Boss4 생성 완료)");
+        }
+
+        // 🔹 100초 후 좀비 보스 한 마리 추가로 생성
+        if (elapsedSec >= 100 && !extraBossSpawned) {
+            int spawnX = 200 + (int)(Math.random() * 400); // 약간 좌우로 랜덤
+            game.addEntity(new Boss4(game, spawnX, 120));
+            extraBossSpawned = true;
+            System.out.println("⚡ [Stage4] 100초 경과 - 추가 좀비 보스 스폰 (Boss4) at x=" + spawnX);
         }
     }
 }
