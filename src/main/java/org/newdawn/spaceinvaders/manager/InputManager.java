@@ -6,7 +6,7 @@ import org.newdawn.spaceinvaders.Game;
 
 /**
  * 🎮 InputManager — 입력 처리
- *  - 이동/공격/ESC 및 상점/시작 화면 입력 (숫자/R/ESC) 모두 처리
+ *  - 이동/공격/ESC 및 상점·시작·재시작 입력(R키 등) 처리 완전판
  */
 public class InputManager extends KeyAdapter {
     private final Game game;
@@ -25,13 +25,16 @@ public class InputManager extends KeyAdapter {
             case KeyEvent.VK_SPACE: game.setFirePressed(true);  break;
 
             case KeyEvent.VK_B:
-                if (game.getShip() != null && game.getShip().hasBomb()) game.getShip().useBomb();
+                if (game.getShip() != null && game.getShip().hasBomb())
+                    game.getShip().useBomb();
                 break;
             case KeyEvent.VK_I:
-                if (game.getShip() != null && game.getShip().hasIceWeapon()) game.getShip().useIceWeapon();
+                if (game.getShip() != null && game.getShip().hasIceWeapon())
+                    game.getShip().useIceWeapon();
                 break;
             case KeyEvent.VK_S:
-                if (game.getShip() != null) game.getShip().activateShield();
+                if (game.getShip() != null)
+                    game.getShip().activateShield();
                 break;
 
             case KeyEvent.VK_ESCAPE:
@@ -54,21 +57,29 @@ public class InputManager extends KeyAdapter {
     public void keyTyped(KeyEvent e) {
         char c = e.getKeyChar();
 
-        // ESC -> 종료
+        // ESC → 즉시 종료
         if (c == 27) { game.endGame(); return; }
 
+        // 🔹 대기 상태에서의 키 입력 처리
         if (game.isWaitingForKeyPress()) {
-            // 상점 열림 상태면 상점 입력
+
+            // ✅ 상점 열림 상태 → 상점 입력 처리
             if (game.isShopOpenFlag()) {
                 game.handleShopKey(c);
                 return;
             }
 
-            // 메시지 상태 또는 첫 시작 → 아무 키나 시작
-            // R키는 재시작/다음 스테이지에도 사용되지만,
-            // 여기서는 “시작”으로 처리
+            // ✅ 사망/요새 파괴 후 R키 → 현재 스테이지 재시작
+            if (c == 'r' || c == 'R') {
+                System.out.println("🔁 R키 입력 — 현재 스테이지 재도전 실행");
+                game.restartCurrentStage();
+                return;
+            }
+
+            // ✅ 그 외 아무 키 → 새 게임 시작 (Stage1부터)
             game.setWaitingForKeyPress(false);
-            game.startGameOrNextStage(false);
+            System.out.println("▶ 새 게임 시작 (Stage1)");
+            game.startGameOrNextStage(1);
         }
     }
 }

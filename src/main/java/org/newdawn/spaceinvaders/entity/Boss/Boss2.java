@@ -208,7 +208,6 @@ public class Boss2 extends MonsterEntity {
             int alpha = (int)(100 + 100 * Math.sin(t * Math.PI * 2));
             g2.setColor(new Color(255, 150, 200, alpha));
             g2.fillRect(0, 0, 800, 600);
-
             for (Sprite s : potionSprites) {
                 int lx = (int)(Math.random() * 750);
                 int ly = (int)(Math.random() * 400);
@@ -230,4 +229,6 @@ public class Boss2 extends MonsterEntity {
         g2.setColor(Color.white);
         g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
     }
+
+    
 }
