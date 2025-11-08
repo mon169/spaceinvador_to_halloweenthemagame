@@ -79,6 +79,8 @@ public class Game extends Canvas {
     private int alienCount = 0; // 🧮 현재 몬스터 수
 
     private String message = "";
+    // flag: 다음 startGameOrNextStage 호출 시 이전 플레이어 상태를 유지할지 여부
+    private boolean retainPlayerOnNextStart = false;
 
     private final int BASE_TIME_LIMIT = 150;
     private final int LIFE_LIMIT = 3;
@@ -191,8 +193,8 @@ public class Game extends Canvas {
                     entityManager.cleanupEntities();
                 }
 
-                // 엔티티 그리기
-                for (Entity e : entities) e.draw(g);
+                // 엔티티 그리기 (복사본으로 순회하여 ConcurrentModification 예외 방지)
+                for (Entity e : new ArrayList<>(entities)) e.draw(g);
 
                 // UI
                 uiManager.drawFullUI(g, this, ship, fortress, entities, message, shopOpen, waitingForKeyPress);
@@ -240,9 +242,20 @@ public class Game extends Canvas {
         else currentStage = stageToRestart;
 
         stageStartTime = System.currentTimeMillis();
+        // 기존 플레이어 상태 보존을 위해 기존 ship 참조 보관
+        UserEntity oldShip = this.ship;
+
         entities.clear();
 
-        ship = new UserEntity(this, "sprites/userr.png", 370, 520);
+        UserEntity newShip = new UserEntity(this, "sprites/userr.png", 370, 520);
+        // 다음 시작에서 이전 상태를 보존하도록 표시된 경우에만 복사
+        if (retainPlayerOnNextStart && oldShip != null) {
+            newShip.copyStateFrom(oldShip);
+        }
+        // 보존 플래그는 일회성
+        retainPlayerOnNextStart = false;
+
+        ship = newShip;
         entities.add(ship);
 
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
@@ -331,6 +344,8 @@ public class Game extends Canvas {
             } else {
                 // ✅ 다음 스테이지로 이동
                 currentStage++;
+                // 다음 시작에서는 플레이어가 상점에서 구매한 상태를 유지
+                this.retainPlayerOnNextStart = true;
                 waitingForKeyPress = false;
                 shopOpen = false;
                 stageStartTime = System.currentTimeMillis();
@@ -371,6 +386,8 @@ public class Game extends Canvas {
 
     public void addEntity(Entity e) {
         entities.add(e);
+        // Debug: 로그를 찍어 어떤 엔티티가 추가되는지 확인
+        System.out.println("➕ 엔티티 추가: " + e.getClass().getSimpleName() + " 위치(" + e.getX() + "," + e.getY() + ")");
         if (e instanceof MonsterEntity || e.getClass().getSimpleName().equals("BombMonsterEntity")) {
             alienCount++;
             System.out.println("👾 몬스터 추가됨: 총 " + alienCount + "마리");

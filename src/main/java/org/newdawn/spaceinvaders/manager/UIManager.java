@@ -78,14 +78,18 @@ public class UIManager {
 
             int y = 130;
             if (ship.hasBomb() || ship.hasIceWeapon() || ship.hasShield()) {
-                g.drawString("[ 보유 중인 특수 무기 ]", 20, y); y += 20;
+                g.drawString("[ 보유 중인 특수 무기 ]", 20, y);
+                y += 26; // 조금 더 넉넉한 간격
             }
-            if (ship.hasBomb())  { g.drawString("• 폭탄 x" + ship.getBombCount() + " (B키)", 20, y); y += 20; }
-            if (ship.hasIceWeapon()) { g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount() + " (I키)", 20, y); y += 20; }
+            if (ship.hasBomb())  { g.drawString("• 폭탄 x" + ship.getBombCount() + " (B키)", 20, y); y += 24; }
+            if (ship.hasIceWeapon()) { g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount() + " (I키)", 20, y); y += 24; }
             if (ship.hasShield()) { g.drawString("• 방어막 x" + ship.getShieldCount() + " (S키)", 20, y); }
         }
+        // 요새 HP는 우측 상단으로 이동하여 HUD 텍스트와 겹치지 않도록 함
         if (fortress != null) {
-            g.drawString("요새 HP: " + fortress.getHP(), 20, 150);
+            String fortHp = "요새 HP: " + fortress.getHP();
+            int fw = g.getFontMetrics().stringWidth(fortHp);
+            g.drawString(fortHp, 800 - fw - 20, 30);
         }
 
         // Stage3 생명제한
