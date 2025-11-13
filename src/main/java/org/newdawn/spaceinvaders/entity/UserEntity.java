@@ -179,14 +179,16 @@ public class UserEntity extends Entity {
 
     public void useBomb() {
         if (bombCount > 0) {
-            game.addEntity(new BombShotEntity(game, "sprites/shot.png", (int) x, (int) y - 30));
+            System.out.println("💣 useBomb 호출 — 폭탄 발사 시도 (남은: " + bombCount + ")");
+            game.addEntity(new org.newdawn.spaceinvaders.entity.BombShotEntity(game, "sprites/bombshot.png", (int) x, (int) y - 30));
             bombCount--;
+            System.out.println("💣 폭탄 생성 완료 — 남은 폭탄: " + bombCount);
         }
     }
 
     public void useIceWeapon() {
         if (iceWeaponCount > 0) {
-            game.addEntity(new IceShotEntity(game, "sprites/shot.png", (int) x, (int) y));
+            game.addEntity(new IceShotEntity(game, "sprites/iceshot.png", (int) x, (int) y));
             iceWeaponCount--;
         }
     }
