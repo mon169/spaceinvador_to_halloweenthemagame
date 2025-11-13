@@ -13,6 +13,7 @@ import javax.swing.JPanel;
 
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.UserEntity;
+import org.newdawn.spaceinvaders.entity.UserEntity2; // 🔥[ADDED] 2P 캐릭터 클래스
 import org.newdawn.spaceinvaders.entity.FortressEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
@@ -28,6 +29,12 @@ import org.newdawn.spaceinvaders.manager.StageManager;
 import org.newdawn.spaceinvaders.manager.StateManager;
 import org.newdawn.spaceinvaders.manager.InputManager;
 import org.newdawn.spaceinvaders.manager.UIManager;
+
+// 🔥[ADDED] 네트워크(소켓) 협동 플레이용 import
+import network.GameClient;
+import network.Packet;
+import java.io.IOException;
+import java.util.UUID;
 
 /**
  * 🎮 Game — 메인 루프 & 게임 상태 관리자
@@ -51,6 +58,9 @@ public class Game extends Canvas {
     private UserEntity ship;
     private FortressEntity fortress;
 
+    // 🔥[ADDED] 2P(상대 플레이어) 엔티티
+    private UserEntity2 ship2; // 상대 플레이어 표현용
+
     // ========= 매니저 =========
     private EntityManager entityManager;
     private BackgroundManager backgroundManager;
@@ -58,6 +68,12 @@ public class Game extends Canvas {
     private StateManager stateManager;
     private InputManager inputManager;
     private UIManager uiManager;
+
+    // 🔥[ADDED] 소켓 네트워크 필드
+    private GameClient client;              // 클라이언트 소켓
+    private boolean networkConnected = false; // 소켓 연결 여부
+    private final String playerId = UUID.randomUUID().toString().substring(0, 6); // 내 플레이어 식별자
+    private boolean socketClosedNotified = false; // 🔥 추가됨 — 무한 반복 방지 플래그
 
     // ========= 게임 상태 =========
     private boolean waitingForKeyPress = true;
@@ -94,6 +110,9 @@ public class Game extends Canvas {
         initManagers();
         initEntities();
         stageStartTime = System.currentTimeMillis();
+
+        // 🔥[ADDED] 소켓 초기화 (GameServer가 켜져 있으면 자동 연결)
+        initSocket();
     }
 
     // ========= 초기화 =========
@@ -144,11 +163,42 @@ public class Game extends Canvas {
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
 
+        // 🔥[ADDED] 2P 엔티티(상대)도 미리 추가해두고, 네트워크로 좌표 동기화
+        try {
+            ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520); // 2P 전용 클래스 사용
+            entities.add(ship2);
+        } catch (Exception ignore) {
+            // 만약 리소스가 아직 없다면 생략해도 게임은 동작
+        }
+
         stageManager.loadStage(currentStage);
         stageManager.resetAllStageFlags(); // ✅ 보스/웨이브 리셋 호출
 
         // ✅ 스테이지 로드 후 즉시 몬스터 수 집계
         countMonsters();
+    }
+
+    // 🔥[ADDED] 소켓 연결 (없으면 무시하고 싱글로 동작)
+    private void initSocket() {
+        try {
+            client = new GameClient("localhost", 9999, this::onPacketReceived);
+            networkConnected = true;
+            System.out.println("✅ 소켓 연결 성공 — 2인 협동 활성화 (ID: " + playerId + ")");
+        } catch (IOException e) {
+            System.out.println("⚠️ 소켓 서버 연결 실패 — 싱글 모드로 실행합니다.");
+            networkConnected = false; // 🔥 추가
+        }
+    }
+
+    // 🔥[ADDED] 패킷 수신 콜백 → 상대(ship2) 상태 갱신
+    private void onPacketReceived(Packet packet) {
+        if (packet == null || packet.playerId == null) return;
+        if (packet.playerId.equals(playerId)) return; // 내 패킷은 무시
+
+        if (ship2 != null) {
+            ship2.updateFromNetwork(packet.x, packet.y, packet.hp);
+            System.out.println("📡 2P 위치 수신 → x=" + packet.x + ", y=" + packet.y);
+        }
     }
 
     // ========= 실시간 몬스터 수 집계 =========
@@ -205,6 +255,26 @@ public class Game extends Canvas {
                 handleMovement();
                 handleFiring();
 
+                // 🔥 수정됨 — 연결이 끊긴 후 무한 출력 방지
+                if (networkConnected && client != null && ship != null) {
+                    try {
+                        client.send(new Packet(
+                                playerId,
+                                (int) ship.getX(),
+                                (int) ship.getY(),
+                                firePressed,
+                                ship.getHp(),
+                                ship.getScore()
+                        ));
+                    } catch (IOException io) {
+                        if (!socketClosedNotified) {
+                            System.out.println("⚠️ 서버 연결 끊김 — 싱글 모드로 전환합니다.");
+                            socketClosedNotified = true;
+                        }
+                        networkConnected = false;
+                    }
+                }
+
                 Thread.sleep(10);
             } catch (Exception ex) {
                 System.err.println("⚠️ 게임 루프 오류: " + ex.getMessage());
@@ -260,6 +330,12 @@ public class Game extends Canvas {
 
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
+
+        // 🔥[ADDED] 재시작 시에도 2P 엔티티 추가
+        try {
+            ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
+            entities.add(ship2);
+        } catch (Exception ignore) {}
 
         stageManager.loadStage(currentStage);
 
@@ -405,4 +481,10 @@ public class Game extends Canvas {
     public int getBaseTimeLimit() { return BASE_TIME_LIMIT; }
     public int getLifeLimit() { return LIFE_LIMIT; }
     public Shop getShop() { return this.shop; }
+
+    // ✅ 메인 실행 진입점 추가
+    public static void main(String[] args) {
+        Game game = new Game();
+        game.gameLoop();
+    }
 }
