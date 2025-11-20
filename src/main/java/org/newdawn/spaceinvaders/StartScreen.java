@@ -59,7 +59,7 @@ public class StartScreen extends JFrame {
             });
         });
 
-        // ✅ 설정 버튼 동작
+        // ✅ 설정 버튼 동작s
         settingsButton.addActionListener(e ->
             JOptionPane.showMessageDialog(this, "⚙️ 환경설정은 준비 중입니다!", "Info", JOptionPane.INFORMATION_MESSAGE)
         );

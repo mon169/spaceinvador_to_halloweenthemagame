@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.shop.Item;
 
@@ -48,9 +47,7 @@ public class UserEntity extends Entity {
         this.sprite = SpriteStore.get().getSprite(spriteRight);
     }
 
-    // =====================================================
-    // 🔹 이동 방향에 따라 스프라이트 변경
-    // =====================================================
+    // 이동 방향에 따라 스프라이트 변경
     @Override
     public void setHorizontalMovement(double speed) {
         super.setHorizontalMovement(speed);
@@ -81,9 +78,8 @@ public class UserEntity extends Entity {
         g2.drawImage(scaled, (int) x, (int) y, null);
     }
 
-    // =====================================================
-    // 🔹 상태 관리
-    // =====================================================
+    // 상태 관리
+
     public int getHealth() { return currentHealth; }
 
     public void heal(int amount) {
@@ -118,23 +114,20 @@ public class UserEntity extends Entity {
         }
     }
 
-    // =====================================================
-    // 🔹 이동 제어
-    // =====================================================
+    // 이동 제어
     @Override
     public void move(long delta) {
         checkFrozenStatus();
         if (isFrozen) return;
 
+        // 경계 체크
         if ((dx < 0) && (x < 10)) return;
         if ((dx > 0) && (x > 750)) return;
 
         super.move(delta);
     }
 
-    // =====================================================
-    // 🔹 충돌 처리
-    // =====================================================
+    // 충돌 처리
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof MonsterEntity) {
@@ -198,7 +191,7 @@ public class UserEntity extends Entity {
             int duration = Math.max(3000, defense * 1000);
             game.addEntity(new ShieldEntity(game, this, duration));
             shieldCount--;
-            System.out.println("🛡 방어막 활성화 (" + duration / 1000 + "초)");
+            System.out.println("방어막 활성화 (" + duration / 1000 + "초)");
         }
     }
 
@@ -219,9 +212,7 @@ public class UserEntity extends Entity {
         this.inventory      = new ArrayList<>(other.inventory);
     }
 
-    // =====================================================
-    // 🔹 기타 유틸
-    // =====================================================
+    // 기타 유틸
     public void setFiringInterval(long interval) { this.firingInterval = interval; }
     public long getFiringInterval() { return this.firingInterval; }
 
