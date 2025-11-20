@@ -69,10 +69,7 @@ public class Boss3 extends MonsterEntity {
         spriteRight = SpriteStore.get().getSprite("sprites/mummyr.png");
         sprite = spriteRight;
 
-        bandageSprites.add(SpriteStore.get().getSprite("sprites/bug.png"));
-        bandageSprites.add(SpriteStore.get().getSprite("sprites/bug.png"));
-        bandageSprites.add(SpriteStore.get().getSprite("sprites/bug.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/bug.png");
+    // bandageSprites and flashSprite previously used a 'bug' visual; removed per design choice
     }
 
     @Override

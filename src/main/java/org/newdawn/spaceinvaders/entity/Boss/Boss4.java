@@ -17,7 +17,7 @@ import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
 /**
- *   Stage 4 Boss: 좀비
+ * Stage 4 Boss: 좀비
  * - 신체 부위 던지기 + 쫄병 좀비들 소환 + HP 숫자
  * - 체력이 줄수록 공격 속도 증가
  * - 한글 폰트 정상 출력
@@ -42,6 +42,9 @@ public class Boss4 extends MonsterEntity {
     private double verticalMoveRange = 30;
     private boolean movingRight = true;
 
+    // 장애물(y=380)보다 위에만 있도록 최대 Y좌표 설정 (안전 영역: 370)
+    private static final int MAX_Y_BOUNDARY = 370;
+
     // 화면 흔들림
     private double shakeIntensity = 8;
     private boolean shaking = false;
@@ -65,8 +68,9 @@ public class Boss4 extends MonsterEntity {
         this.game = game;
         this.baseY = y;
 
-        spriteLeft  = SpriteStore.get().getSprite("sprites/zombil.png");
-        spriteRight = SpriteStore.get().getSprite("sprites/zombir.png");
+        // 리소스 파일 이름과 일치하도록 수정: resources/sprites에 zombiel.png, zombier.png가 존재합니다.
+        spriteLeft = SpriteStore.get().getSprite("sprites/zombiel.png");
+        spriteRight = SpriteStore.get().getSprite("sprites/zombier.png");
         sprite = spriteRight;
 
         limbSprites.add(SpriteStore.get().getSprite("sprites/arm1.png"));
@@ -78,12 +82,22 @@ public class Boss4 extends MonsterEntity {
     @Override
     public void move(long delta) {
         double oldX = x;
+        
+        // 1. X, Y 위치 계산
         x += Math.sin(System.currentTimeMillis() / 750.0) * 0.5 * delta;
         y = baseY + Math.sin(System.currentTimeMillis() / 1000.0) * verticalMoveRange;
 
+        // 2. X 경계 제한
         if (x < 60) x = 60;
         if (x > 680) x = 680;
 
+        // 3. Y 경계 제한 (추가된 부분)
+        // 몬스터가 장애물(y=380)보다 아래로 내려오지 않도록 강제 제한
+        if (y > MAX_Y_BOUNDARY) {
+            y = MAX_Y_BOUNDARY;
+        }
+
+        // 4. 스프라이트 방향 결정
         movingRight = x > oldX;
         sprite = movingRight ? spriteRight : spriteLeft;
 

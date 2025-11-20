@@ -105,7 +105,71 @@ public class MonsterEntity extends Entity {
         }
 
         // 이동 처리
-        if (!frozen) super.move(delta);
+        if (!frozen) {
+            // 만약 Stage4이고 장애물이 더 이상 없다면 아래로 내려갈 수 있도록 상태 복구
+            try {
+                if (game != null && (game.getCurrentStage() == 4 || game.getCurrentStage() == 5)) {
+                    boolean anyObstacleBelow = false;
+                    int myW = this.getWidth();
+                    int myH = this.getHeight();
+                    java.util.List<Entity> ents = game.getEntities();
+                    for (Entity e : ents) {
+                        if (e instanceof org.newdawn.spaceinvaders.entity.ObstacleEntity) {
+                            int ox = e.getX();
+                            int oy = e.getY();
+                            int ow = e.getWidth();
+                            boolean horizOverlapNow = (x < ox + ow) && (x + myW > ox);
+                            // 장애물이 현재 엔티티의 아래에 존재하면 '아래에 장애물 있음'
+                            if (horizOverlapNow && oy >= (int)(y + myH)) {
+                                anyObstacleBelow = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!anyObstacleBelow) {
+                        // 장애물이 없다면 아래로 내려가도록 허용
+                        movingDown = true;
+                        dy = moveSpeed;
+                    }
+                }
+            } catch (Exception ignore) {}
+            // 예상 이동 위치 계산 (픽셀)
+            double nextX = x + (delta * dx) / 1000.0;
+            double nextY = y + (delta * dy) / 1000.0;
+
+            // Stage4의 장애물 아래로 내려가는 것을 막음
+            try {
+                if (game != null && (game.getCurrentStage() == 4 || game.getCurrentStage() == 5)) {
+                    java.util.List<Entity> ents = game.getEntities();
+                    for (Entity e : ents) {
+                        if (e instanceof org.newdawn.spaceinvaders.entity.ObstacleEntity) {
+                            int ox = e.getX();
+                            int oy = e.getY();
+                            int ow = e.getWidth();
+                            int myW = this.getWidth();
+                            int myH = this.getHeight();
+
+                            // 수평 영역이 겹치고, 현재는 장애물 위에 있지 않지만 다음 프레임에 아래로 침범하면 막음
+                            boolean horizOverlap = (nextX < ox + ow) && (nextX + myW > ox);
+                            boolean currentlyAbove = (y + myH) <= oy;
+                            boolean wouldPenetrate = (nextY + myH) > oy;
+
+                            if (horizOverlap && currentlyAbove && wouldPenetrate && dy > 0) {
+                                // 닿기 직전으로 위치 고정하고 아래로 더 내려가지 않도록 반전
+                                y = oy - myH - 1;
+                                movingDown = false;
+                                dy = -moveSpeed;
+                                // ensure horizontal speed unchanged; update sprite direction
+                                updateDirection();
+                                return; // 이동 처리 끝
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignore) {}
+
+            super.move(delta);
+        }
 
         // 경계 충돌 시 반전
         if (x <= 10) {
