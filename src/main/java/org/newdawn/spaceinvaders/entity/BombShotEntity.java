@@ -1,5 +1,9 @@
 package org.newdawn.spaceinvaders.entity;
 
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,20 +25,21 @@ public class BombShotEntity extends Entity {
     private final Game game;
     /** 위로 이동 속도(px/s) */
     private static final double MOVE_SPEED = -300;
-    /** 폭발 반경(px) */
-    private static final int EXPLOSION_RADIUS = 100;
+    /** 폭발 반경(px) - 적당한 범위 */
+    private static final int EXPLOSION_RADIUS = 250;
 
     public BombShotEntity(Game game, String spriteRef, int x, int y) {
         super(spriteRef, x, y);
         this.game = game;
         this.dy = MOVE_SPEED;
+        System.out.println("💣 BombShotEntity 생성 — 위치(" + x + "," + y + ") 속도 dy=" + this.dy);
     }
 
     @Override
     public void move(long delta) {
         super.move(delta);
-        // 화면 상단 근처에서 폭발
-        if (y < 10) {
+        // 화면 상단 부근에서 폭발
+        if (y < 150) {
             explode();
         }
     }
@@ -42,8 +47,9 @@ public class BombShotEntity extends Entity {
     /** 💥 폭발 처리: 반경 내 몬스터 수집 후 일괄 제거 */
     private void explode() {
         List<Entity> toHit = new ArrayList<>();
+        System.out.println("💥 폭발 실행 — 위치(" + x + "," + y + ") 반경=" + EXPLOSION_RADIUS);
 
-        // 반경 내 MonsterEntity 수집
+        // 반경 내 MonsterEntity 수집 (보스 포함)
         for (Entity e : game.getEntities()) {
             if (e instanceof MonsterEntity) {
                 double dist = Math.hypot(e.getX() - x, e.getY() - y);
@@ -54,6 +60,7 @@ public class BombShotEntity extends Entity {
         }
 
         // 제거 및 알림
+        System.out.println("💥 폭발로 " + toHit.size() + "마리 처치!");
         for (Entity e : toHit) {
             game.removeEntity(e);
             game.notifyAlienKilled();
@@ -69,5 +76,19 @@ public class BombShotEntity extends Entity {
         if (other instanceof MonsterEntity) {
             explode();
         }
+    }
+
+    @Override
+    public void draw(Graphics g) {
+        // 기본 스프라이트가 있으면 축소해서 그리기
+        if (sprite != null) {
+            Graphics2D g2 = (Graphics2D) g;
+            Image scaled = sprite.getImage().getScaledInstance((int) (sprite.getWidth() * 0.5), (int) (sprite.getHeight() * 0.5), Image.SCALE_SMOOTH);
+            g2.drawImage(scaled, (int) x, (int) y, null);
+        }
+
+        // 디버그용 시각 표시 (보이지 않는 경우를 대비)
+        g.setColor(Color.RED);
+        g.fillRect((int) x + 6, (int) y + 6, 6, 6);
     }
 }

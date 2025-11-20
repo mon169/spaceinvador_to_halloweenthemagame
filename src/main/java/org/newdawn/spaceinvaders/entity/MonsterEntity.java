@@ -262,7 +262,8 @@ public class MonsterEntity extends Entity {
                 break;
             case "bombshot":
                 speed = 250;
-                spritePath = "sprites/bombshot-removebg-preview.png";
+                // Use the cleaned bombshot image if available
+                spritePath = "sprites/bombshot.png";
                 break;
             default:
                 speed = 180;
