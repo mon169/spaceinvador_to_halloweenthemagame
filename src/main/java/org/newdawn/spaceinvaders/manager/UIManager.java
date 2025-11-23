@@ -23,10 +23,12 @@ public class UIManager {
     private final Font titleFont = new Font("맑은 고딕", Font.BOLD, 24);
     private final Font smallFont = new Font("맑은 고딕", Font.PLAIN, 14);
     private final Sprite startBtn;
+    private final Sprite startBackground; // 시작 화면 배경 이미지
 
     public UIManager(Game game) {
         this.game = game;
         this.startBtn = SpriteStore.get().getSprite("sprites/startbutton.png");
+        this.startBackground = SpriteStore.get().getSprite("bg/start_background.jpg");
     }
 
     /** 전체 UI 렌더링 엔트리 */
@@ -107,7 +109,9 @@ public class UIManager {
 
         g.setColor(Color.white);
         g.setFont(titleFont);
-        g.drawString("★ SHOP ★", 360, 60);
+        String shopTitle = "SHOP";
+        int titleWidth = g.getFontMetrics().stringWidth(shopTitle);
+        g.drawString(shopTitle, (800 - titleWidth) / 2, 60);
 
         g.setFont(smallFont);
         g.drawString("현재 보유 금액: " + ship.getMoney() + " 골드", 330, 90);
@@ -162,24 +166,25 @@ public class UIManager {
     }
 
     private void drawStartScreen(Graphics2D g) {
-        g.setColor(new Color(0, 0, 0, 200));
-        g.fillRect(0, 0, 800, 600);
+        // 배경 이미지가 있으면 사용, 없으면 반투명 검은색 배경
+        if (startBackground != null) {
+            startBackground.drawScaled(g, 0, 0, 800, 600);
+        } else {
+            g.setColor(new Color(0, 0, 0, 200));
+            g.fillRect(0, 0, 800, 600);
+        }
+        
         g.setColor(Color.white);
 
-        // 제목
-        g.setFont(titleFont);
-        String title = "SPACE INVADERS";
-        g.drawString(title, (800 - g.getFontMetrics().stringWidth(title)) / 2, 200);
-
-        // 버튼
+        // 버튼 (크기 조정하고 중앙 아래에 배치)
         if (startBtn != null) {
-            int MAX_BTN_W = 700, MAX_BTN_H = 500;
             int bw = startBtn.getWidth(), bh = startBtn.getHeight();
-            double scale = Math.min(MAX_BTN_W / (double) bw, MAX_BTN_H / (double) bh);
+            // 버튼 크기를 조정 (원본의 약 70% 크기)
+            double scale = 0.7;
             int dw = (int) Math.round(bw * scale);
             int dh = (int) Math.round(bh * scale);
-            int btnX = (800 - dw) / 2;
-            int btnY = (600 - dh) / 2 + 40;
+            int btnX = (800 - dw) / 2; // 중앙 정렬
+            int btnY = (600 - dh) / 2 + 100; // 중앙에서 더 아래
             startBtn.drawScaled(g, btnX, btnY, dw, dh);
         }
 
