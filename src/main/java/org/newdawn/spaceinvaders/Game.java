@@ -104,6 +104,7 @@ public class Game extends Canvas {
 
 
     private Sprite bg;
+    private Sprite originalBg; // 원래 배경 저장 (보스 등장 전 배경)
     private Shop shop = new Shop();
 
     // ========= 생성자 =========
@@ -367,6 +368,10 @@ public class Game extends Canvas {
         }
 
         stageManager.loadStage(currentStage);
+        stageManager.resetAllStageFlags(); // ✅ 재시작 시에도 모든 스테이지 플래그 리셋
+        
+        // 재시작 시 보스가 없으면 배경 복원
+        restoreBackgroundIfNoBoss();
 
         leftPressed = rightPressed = firePressed = false;
         waitingForKeyPress = false;
@@ -395,6 +400,13 @@ public class Game extends Canvas {
     public void bossDefeated() {
         bossSpawned = false;
         if (ship != null) ship.earnMoney(500);
+        
+        // 보스 처치 시 원래 배경으로 복원
+        if (originalBg != null) {
+            bg = originalBg;
+            originalBg = null;
+            System.out.println("🔄 배경 복원: 원래 배경으로 변경");
+        }
 
         message = "🎉 Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
         waitingForKeyPress = true;
@@ -454,6 +466,8 @@ public class Game extends Canvas {
             } else {
                 // ✅ 다음 스테이지로 이동
                 currentStage++;
+                // 스테이지 전환 시 배경 상태 초기화
+                originalBg = null;
                 // 다음 시작에서는 플레이어가 상점에서 구매한 상태를 유지
                 this.retainPlayerOnNextStart = true;
                 waitingForKeyPress = false;
@@ -528,6 +542,43 @@ public class Game extends Canvas {
     public int getBaseTimeLimit() { return BASE_TIME_LIMIT; }
     public int getLifeLimit() { return LIFE_LIMIT; }
     public Shop getShop() { return this.shop; }
+    
+    // 배경 변경 메서드 (보스 등장 시 사용)
+    public void setBackground(String bgPath) {
+        // 현재 배경을 원래 배경으로 저장 (처음 한 번만)
+        if (originalBg == null) {
+            originalBg = bg;
+        }
+        bg = SpriteStore.get().getSprite(bgPath);
+        if (bg == null) {
+            System.err.println("⚠️ 배경 이미지 로드 실패: " + bgPath);
+        } else {
+            System.out.println("✅ 배경 변경: " + bgPath);
+        }
+    }
+    
+    // 보스가 없으면 배경 복원
+    private void restoreBackgroundIfNoBoss() {
+        // entities에 보스가 있는지 확인 (클래스 이름으로 체크)
+        boolean hasBoss = false;
+        for (Entity e : entities) {
+            String className = e.getClass().getSimpleName();
+            if (className.startsWith("Boss") && 
+                (className.equals("Boss1") || className.equals("Boss2") || 
+                 className.equals("Boss3") || className.equals("Boss4") || 
+                 className.equals("Boss5"))) {
+                hasBoss = true;
+                break;
+            }
+        }
+        
+        // 보스가 없고 원래 배경이 저장되어 있으면 복원
+        if (!hasBoss && originalBg != null) {
+            bg = originalBg;
+            originalBg = null;
+            System.out.println("🔄 배경 복원: 보스가 없어서 원래 배경으로 변경");
+        }
+    }
 
     // ✅ 메인 실행 진입점 추가
     public static void main(String[] args) {

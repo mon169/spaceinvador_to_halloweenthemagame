@@ -43,7 +43,12 @@ public abstract class Entity {
 	 * @param y The initial y location of this entity
 	 */
 	public Entity(String ref,int x,int y) {
-		this.sprite = SpriteStore.get().getSprite(ref);
+		// 빈 경로인 경우 sprite를 null로 설정 (나중에 설정 가능)
+		if (ref != null && !ref.isEmpty()) {
+			this.sprite = SpriteStore.get().getSprite(ref);
+		} else {
+			this.sprite = null;
+		}
 		this.x = x;
 		this.y = y;
 	}

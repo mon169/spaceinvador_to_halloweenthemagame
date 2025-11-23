@@ -24,7 +24,7 @@ import org.newdawn.spaceinvaders.entity.MonsterEntity;
  */
 public class Boss2 extends MonsterEntity {
     private final Game game;
-    private int health = 10;
+    private int health = 10; // ✅ 체력 원래대로 (10)
     private boolean enraged = false;
 
     // 궁극기 관련 (물약 폭탄 패턴)
@@ -73,6 +73,9 @@ public class Boss2 extends MonsterEntity {
         potionSprites.add(SpriteStore.get().getSprite("sprites/poisonpotion.png"));
         potionSprites.add(SpriteStore.get().getSprite("sprites/poisonpotion.png"));
         flashSprite = SpriteStore.get().getSprite("sprites/poisonpotion.png");
+        
+        // 보스 등장 시 배경 변경 (wbg.jpg)
+        game.setBackground("bg/wbg.jpg");
     }
 
     @Override

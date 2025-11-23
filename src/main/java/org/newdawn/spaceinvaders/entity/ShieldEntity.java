@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.Boss.BossEntity;
 
 /**
  * 🛡 요새 방어막 엔티티 (ShieldEntity)
@@ -74,6 +75,37 @@ public class ShieldEntity extends Entity {
     }
 
     @Override
+    public boolean collidesWith(Entity other) {
+        // 🛡 방어막은 총알만 감지하고, 몬스터/보스와는 충돌하지 않음 (히트박스 축소)
+        if (other instanceof MonsterEntity || other instanceof BossEntity) {
+            return false; // 몬스터/보스와는 충돌하지 않음
+        }
+        // 총알만 충돌 감지 (히트박스 크기 축소)
+        if (other instanceof EnemyShotEntity) {
+            // 요새 주변 작은 영역만 충돌 감지
+            int marginX = sprite.getWidth() / 3; // 히트박스 크기를 1/3로 축소
+            int marginY = sprite.getHeight() / 3;
+            
+            java.awt.Rectangle me = new java.awt.Rectangle(
+                (int) x + marginX,
+                (int) y + marginY,
+                sprite.getWidth() - marginX * 2,
+                sprite.getHeight() - marginY * 2
+            );
+            
+            java.awt.Rectangle him = new java.awt.Rectangle(
+                (int) other.x,
+                (int) other.y,
+                other.sprite.getWidth(),
+                other.sprite.getHeight()
+            );
+            
+            return me.intersects(him);
+        }
+        return super.collidesWith(other);
+    }
+
+    @Override
     public void collidedWith(Entity other) {
         // 🛡 지속시간 동안 모든 피해 무시 (무적 상태)
         // 충돌해도 방어막은 제거되지 않고 지속시간이 끝날 때까지 유지
@@ -84,13 +116,7 @@ public class ShieldEntity extends Entity {
             game.removeEntity(shot);       // 총알만 제거 (방어막은 유지)
             System.out.println("🛡 방어막이 적 공격을 막았습니다! (방어막 유지)");
         }
-        // 🛡 몬스터와 충돌 시 몬스터만 제거, 방어막은 유지
-        if (other instanceof MonsterEntity) {
-            MonsterEntity monster = (MonsterEntity) other;
-            onBlockedMonster(monster);     // 💫 효과용 콜백
-            game.removeEntity(monster);    // 몬스터만 제거 (방어막은 유지)
-            System.out.println("🛡 방어막이 몬스터 충돌을 막았습니다! (방어막 유지)");
-        }
+        // 🛡 몬스터와는 충돌하지 않으므로 제거 로직 없음
     }
 
     /** 💥 총알이 방어막에 막혔을 때 호출되는 콜백 */
