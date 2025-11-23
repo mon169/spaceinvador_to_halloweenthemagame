@@ -35,6 +35,11 @@ public class UIManager {
     public void drawFullUI(Graphics2D g, Game game, UserEntity ship, FortressEntity fortress,
                            List<Entity> entities, String message, boolean shopOpen, boolean waiting) {
 
+        // Stage 3에서 체력이 제한 이하일 때는 오직 메시지 오버레이만 표시
+        if (game.getCurrentStage() == 3 && ship != null && ship.getHealth() <= game.getLifeLimit()) {
+            drawMessageOverlay(g, "💀 사망했습니다!\nR 키를 눌러 다시 도전하세요");
+            return;
+        }
         // 게임 중 HUD
         if (!waiting) {
             drawHUD(g, game, ship, fortress);
@@ -59,17 +64,17 @@ public class UIManager {
         String stageInfo = "STAGE " + game.getCurrentStage() + " - " + stageDesc(game.getCurrentStage());
         g.drawString(stageInfo, 20, 30);
 
-        // 남은 적
-        g.drawString("남은 적: " + game.getAlienCount(), 250, 30);
+        // 남은 적 (더 오른쪽)
+        g.drawString("남은 적: " + game.getAlienCount(), 350, 30);
 
-        // 타이머
-        int timeLimit = game.getBaseTimeLimit();
-        long elapsed = (System.currentTimeMillis() - game.getStageStartTime()) / 1000;
-        long remain = Math.max(0, timeLimit - elapsed);
-        String timeFormat = "시간 제한: " + remain + "초";
-        if (remain <= 20) { g.setColor(Color.red); }
-        g.drawString(timeFormat, 350, 30);
-        g.setColor(Color.white);
+            // 타이머 (더 오른쪽)
+            int timeLimit = game.getBaseTimeLimit();
+            long elapsed = (System.currentTimeMillis() - game.getStageStartTime()) / 1000;
+            long remain = Math.max(0, timeLimit - elapsed);
+            String timeFormat = "시간 제한: " + remain + "초";
+            if (remain <= 20) { g.setColor(Color.red); }
+            g.drawString(timeFormat, 500, 30);
+            g.setColor(Color.white);
 
         // Player/Fortress Stats
         if (ship != null) {
@@ -91,7 +96,7 @@ public class UIManager {
         if (fortress != null) {
             String fortHp = "요새 HP: " + fortress.getHP();
             int fw = g.getFontMetrics().stringWidth(fortHp);
-            g.drawString(fortHp, 800 - fw - 20, 30);
+                g.drawString(fortHp, 800 - fw - 40, 30);
         }
 
         // Stage3 생명제한
