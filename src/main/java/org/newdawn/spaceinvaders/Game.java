@@ -16,7 +16,10 @@ import org.newdawn.spaceinvaders.entity.UserEntity;
 import org.newdawn.spaceinvaders.entity.FortressEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
+import org.newdawn.spaceinvaders.entity.ShieldEntity;
 
+import org.newdawn.spaceinvaders.Sprite;
+import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.shop.Shop;
 
 import org.newdawn.spaceinvaders.manager.EntityManager;
@@ -186,8 +189,20 @@ public class Game extends Canvas {
                     entityManager.cleanupEntities();
                 }
 
-                // 엔티티 그리기
-                for (Entity e : entities) e.draw(g);
+                // 엔티티 그리기 (방어막은 먼저 그려서 다른 엔티티가 위에 오도록)
+                for (Entity e : entities) {
+                    if (e instanceof ShieldEntity) {
+                        // 방어막은 나중에 그리기 위해 스킵
+                        continue;
+                    }
+                    e.draw(g);
+                }
+                // 방어막은 마지막에 그리기 (다른 엔티티 위에 표시되지만 투명도 조절)
+                for (Entity e : entities) {
+                    if (e instanceof ShieldEntity) {
+                        e.draw(g);
+                    }
+                }
 
                 // UI
                 uiManager.drawFullUI(g, this, ship, fortress, entities, message, shopOpen, waitingForKeyPress);
@@ -240,9 +255,21 @@ public class Game extends Canvas {
         else currentStage = stageToRestart;
 
         stageStartTime = System.currentTimeMillis();
+        
+        // 기존 ship 상태 저장 (상점 구매 반영을 위해)
+        UserEntity oldShip = ship;
+        
         entities.clear();
 
+        // 새 ship 생성
         ship = new UserEntity(this, "sprites/userr.png", 370, 520);
+        
+        // 기존 ship이 있으면 상태 복사 (상점 구매 반영)
+        if (oldShip != null) {
+            ship.copyStateFrom(oldShip);
+            System.out.println("✅ 이전 스테이지 상태 복사 완료 (골드: " + ship.getMoney() + ", 방어력: " + ship.getDefense() + ", 공격력: " + ship.getAttackPower() + ")");
+        }
+        
         entities.add(ship);
 
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
@@ -334,6 +361,11 @@ public class Game extends Canvas {
         alienCount--;
         if (alienCount < 0) alienCount = 0;
         System.out.println("💥 몬스터 처치됨 (남은 적: " + alienCount + ")");
+        
+        // 🎁 랜덤 보상 지급
+        if (rewardManager != null && ship != null) {
+            rewardManager.grantReward(ship);
+        }
     }
 
     public void notifyDeath() {
@@ -356,10 +388,16 @@ public class Game extends Canvas {
 
     // ========= 상점 =========
     public void handleShopKey(char key) {
-        if (!shopOpen || shop == null || ship == null) return;
+        System.out.println("🛒 handleShopKey 호출: key=" + key + ", shopOpen=" + shopOpen + ", shop=" + (shop != null) + ", ship=" + (ship != null));
+        if (!shopOpen || shop == null || ship == null) {
+            System.out.println("⚠️ 상점 구매 불가: shopOpen=" + shopOpen + ", shop=" + (shop != null) + ", ship=" + (ship != null));
+            return;
+        }
 
         if (key >= '1' && key <= '9') {
-            purchaseItem(key - '1');
+            int index = key - '1';
+            System.out.println("💰 아이템 구매 시도: 인덱스 " + index);
+            purchaseItem(index);
         } else if (key == 'r' || key == 'R') {
             if (!shopOpen && waitingForKeyPress) {
                 // 💀 사망 상태에서 R → 스테이지 재도전
@@ -421,6 +459,19 @@ public class Game extends Canvas {
 
     public void removeEntity(Entity e) {
         if (!removeList.contains(e)) removeList.add(e);
+    }
+    
+    /** 활성화된 방어막이 있는지 확인 */
+    public boolean hasActiveShield() {
+        for (Entity e : entities) {
+            if (e instanceof ShieldEntity) {
+                ShieldEntity shield = (ShieldEntity) e;
+                if (shield.isActive()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public long getStageStartTime() { return stageStartTime; }

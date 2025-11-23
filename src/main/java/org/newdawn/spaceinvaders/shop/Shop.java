@@ -111,30 +111,44 @@ public class Shop {
 
     // 아이템 구매 로직
     public void purchaseItem(UserEntity playerShip, int itemIndex) {
+        System.out.println("🛒 purchaseItem 호출: itemIndex=" + itemIndex + ", itemsForSale.size()=" + itemsForSale.size());
+        
         if (itemIndex < 0 || itemIndex >= itemsForSale.size()) {
-            System.out.println("잘못된 상품 번호입니다.");
+            System.out.println("❌ 잘못된 상품 번호입니다. (인덱스: " + itemIndex + ", 범위: 0-" + (itemsForSale.size() - 1) + ")");
             return;
         }
 
         Item selectedItem = itemsForSale.get(itemIndex);
+        int currentMoney = playerShip.getMoney();
+        int itemCost = selectedItem.getCost();
+        
+        System.out.println("💰 구매 시도: " + selectedItem.getName() + " (가격: " + itemCost + "골드, 보유: " + currentMoney + "골드)");
 
-        if (playerShip.getMoney() >= selectedItem.getCost()) {
-            playerShip.spendMoney(selectedItem.getCost());
+        if (currentMoney >= itemCost) {
+            playerShip.spendMoney(itemCost);
             playerShip.addItem(selectedItem);
+            
+            // 구매 전 상태 로그
+            int oldShieldCount = playerShip.getShieldCount();
+            boolean oldHasShield = playerShip.hasShield();
+            
             selectedItem.applyEffect(playerShip); // 아이템 효과 적용!
-            System.out.printf("'%s' 구매를 완료했습니다!\n", selectedItem.getName());
+            
+            // 구매 후 상태 로그
+            int newShieldCount = playerShip.getShieldCount();
+            boolean newHasShield = playerShip.hasShield();
+            
+            System.out.println("✅ '" + selectedItem.getName() + "' 구매 완료! (남은 골드: " + playerShip.getMoney() + ")");
+            if (selectedItem.getName().equals("방어막")) {
+                System.out.println("🛡 방어막 구매 확인 - 이전: " + oldShieldCount + " (hasShield=" + oldHasShield + ") → 이후: " + newShieldCount + " (hasShield=" + newHasShield + ")");
+            }
         } else {
-            System.out.println("잔액이 부족합니다.");
+            System.out.println("❌ 잔액이 부족합니다. (필요: " + itemCost + "골드, 보유: " + currentMoney + "골드)");
         }
     }
     
     // 판매 아이템 목록을 반환하는 메서드 (UI 표시에 사용)
     public List<Item> getItemsForSale() {
         return new ArrayList<>(itemsForSale);
-    }
-
-    // 파일 이동 없이 코드 수정이 가능하도록 메서드 추가
-    private void copyToList(ArrayList<Item> list) {
-        list.addAll(itemsForSale);
     }
 }

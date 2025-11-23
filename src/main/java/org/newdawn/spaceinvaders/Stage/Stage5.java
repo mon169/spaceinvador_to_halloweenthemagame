@@ -36,20 +36,19 @@ public class Stage5 implements Stage {
             game.addEntity(alien);
         }
 
-        // 🧱 장애물 2줄 생성
+        // 🧱 장애물 2줄 생성 (a, b, c 랜덤 선택)
         int panelWidth = 800;
         int w = 32;
         int count = panelWidth / w;
 
         for (int row = 0; row < 2; row++) {
             for (int x = 0; x < count; x++) {
-                // 1줄째: onestep, 2줄째: twostep 사용
-                String group = (row == 0) ? "onestep" : "twostep";
-                game.addEntity(new ObstacleEntity(game, x * w, 380 + row * 40, group));
+                // a, b, c 중 랜덤 선택 (생성자에서 자동으로 랜덤 선택됨)
+                game.addEntity(new ObstacleEntity(game, x * w, 380 + row * 40));
             }
         }
 
-        System.out.println("🧱 [Stage5] 장애물 2줄 생성 완료");
+        System.out.println("🧱 [Stage5] 장애물 2줄 생성 완료 (a/b/c 랜덤)");
     }
 
     @Override
@@ -93,5 +92,12 @@ public class Stage5 implements Stage {
             bossSpawned = true;
             System.out.println("🩸 [Stage5] 최종 보스 등장! (Boss5 생성 완료)");
         }
+    }
+
+    @Override
+    public void resetStageFlags() {
+        bossSpawned = false;
+        lastAlienShotTime = 0;
+        System.out.println("🔄 [Stage5] 보스 및 타이머 리셋 완료");
     }
 }

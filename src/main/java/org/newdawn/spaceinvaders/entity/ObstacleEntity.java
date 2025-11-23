@@ -4,46 +4,64 @@ import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.SpriteStore;
 
 import java.util.List;
+import java.util.Random;
 
 /**
  * 스테이지별 장애물 엔티티
+ * candywall의 a, b, c 그룹 중 랜덤 선택하여 사용
+ * a_1 = obstacle1, a_2 = obstacle2, a_3 = obstacle3, a_4 = obstacle4
  */
 public class ObstacleEntity extends Entity {
     private Game game;
     private int stage; // 장애물 단계 (1~4)
     private int hitCount = 0;
     private static final int[] hitToNextStage = {2, 2, 2, 2}; // 각 단계별 필요 타격 수
+    private static final Random random = new Random();
     
-    // 그룹별(캔디월 단계별) 4프레임 이미지 경로
-    // onestep: obstacle1 대체, twostep: obstacle2 대체
+    // candywall 그룹별 4프레임 이미지 경로
+    // a_1 = obstacle1, a_2 = obstacle2, a_3 = obstacle3, a_4 = obstacle4
     private static final String[][] GROUP_TO_FRAMES = new String[][]{
-        // onestep
+        // a 그룹
         {
-            "sprites/candywall/onestep/candy_spritesheet_4x1.jpg",
-            "sprites/candywall/onestep/candy_spritesheet_4x1 2.jpg",
-            "sprites/candywall/onestep/candy_spritesheet_4x1 3.jpg",
-            "sprites/candywall/onestep/candy_spritesheet_4x1 4.jpg"
+            "sprites/candywall/a/a_1.png",  // obstacle1
+            "sprites/candywall/a/a_2.png",  // obstacle2
+            "sprites/candywall/a/a_3.png",  // obstacle3
+            "sprites/candywall/a/a_4.png"   // obstacle4
         },
-        // twostep
+        // b 그룹
         {
-            "sprites/candywall/twostep/Pixel candy.png",
-            "sprites/candywall/twostep/Pixel candy 2.png",
-            "sprites/candywall/twostep/Pixel candy 3.png",
-            "sprites/candywall/twostep/Pixel candy 4.png"
+            "sprites/candywall/b/b_1.png",  // obstacle1
+            "sprites/candywall/b/b_2.png",  // obstacle2
+            "sprites/candywall/b/b_3.png",  // obstacle3
+            "sprites/candywall/b/b_4.png"   // obstacle4
+        },
+        // c 그룹
+        {
+            "sprites/candywall/c/c_1.png",  // obstacle1
+            "sprites/candywall/c/c_2.png",  // obstacle2
+            "sprites/candywall/c/c_3.png",  // obstacle3
+            "sprites/candywall/c/c_4.png"   // obstacle4
         }
     };
     
-    // 현재 장애물이 사용할 프레임 세트 (기본 onestep)
-    private String[] frames = GROUP_TO_FRAMES[0];
+    // 현재 장애물이 사용할 프레임 세트 (랜덤 선택된 그룹)
+    private String[] frames;
 
+    /**
+     * 기본 생성자 - a, b, c 중 랜덤 선택
+     */
     public ObstacleEntity(Game game, int x, int y) {
-        super(GROUP_TO_FRAMES[0][0], x, y);
+        super("", x, y); // 임시 경로
         this.game = game;
         this.stage = 1;
+        // 한 번만 랜덤 선택하여 같은 그룹 사용
+        this.frames = getRandomGroupFrames();
+        this.sprite = SpriteStore.get().getSprite(frames[0]); // 첫 번째 프레임으로 초기화
     }
     
     /**
-     * 특정 그룹을 명시하는 생성자 ("onestep" | "twostep")
+     * 특정 그룹을 명시하는 생성자 ("a" | "b" | "c")
+     * group이 null이거나 유효하지 않으면 랜덤 선택
      */
     public ObstacleEntity(Game game, int x, int y, String group) {
         super(selectGroupFrames(group)[0], x, y);
@@ -52,14 +70,28 @@ public class ObstacleEntity extends Entity {
         this.frames = selectGroupFrames(group);
     }
     
+    /**
+     * a, b, c 중 랜덤하게 그룹 선택
+     */
+    private static String[] getRandomGroupFrames() {
+        int groupIndex = random.nextInt(3); // 0=a, 1=b, 2=c
+        return GROUP_TO_FRAMES[groupIndex];
+    }
+    
+    /**
+     * 특정 그룹의 프레임 선택 ("a" | "b" | "c")
+     */
     private static String[] selectGroupFrames(String group) {
-        if (group == null) return GROUP_TO_FRAMES[0];
+        if (group == null) return getRandomGroupFrames();
         switch (group.toLowerCase()) {
-            case "twostep":
-                return GROUP_TO_FRAMES[1];
-            case "onestep":
-            default:
+            case "a":
                 return GROUP_TO_FRAMES[0];
+            case "b":
+                return GROUP_TO_FRAMES[1];
+            case "c":
+                return GROUP_TO_FRAMES[2];
+            default:
+                return getRandomGroupFrames(); // 유효하지 않으면 랜덤
         }
     }
 

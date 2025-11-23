@@ -22,10 +22,28 @@ public class UIManager {
     private final Font titleFont = new Font("맑은 고딕", Font.BOLD, 24);
     private final Font smallFont = new Font("맑은 고딕", Font.PLAIN, 14);
     private final Sprite startBtn;
+    
+    // 상점 UI 스프라이트 (선택적 - 파일이 없으면 null)
+    private Sprite shopBackground;
+    private Sprite shopItemSlot;
+    private Sprite shopTitle;
 
     public UIManager(Game game) {
         this.game = game;
         this.startBtn = SpriteStore.get().getSprite("sprites/startbutton.png");
+        
+        // 상점 스프라이트 로드 (파일이 없으면 null이 됨)
+        // SpriteStore는 파일이 없어도 placeholder를 반환하므로,
+        // 실제로는 파일 존재 여부를 확인하기 어렵습니다.
+        // 스프라이트를 올려주시면 자동으로 사용됩니다.
+        this.shopBackground = null; // 스프라이트 파일을 올려주시면 여기에 경로 지정
+        this.shopItemSlot = null;
+        this.shopTitle = null;
+        
+        // 스프라이트 파일이 준비되면 아래 주석을 해제하고 파일명을 지정하세요
+        // this.shopBackground = SpriteStore.get().getSprite("sprites/shop_background.png");
+        // this.shopItemSlot = SpriteStore.get().getSprite("sprites/shop_item_slot.png");
+        // this.shopTitle = SpriteStore.get().getSprite("sprites/shop_title.png");
     }
 
     /** 전체 UI 렌더링 엔트리 */
@@ -74,19 +92,9 @@ public class UIManager {
             g.drawString("방어력: " + ship.getDefense(), 20, 70);
             g.drawString("공격력: " + ship.getAttackPower(), 20, 90);
             g.drawString("골드: " + ship.getMoney(), 20, 110);
-
-            int y = 130;
-            if (ship.hasBomb() || ship.hasIceWeapon() || ship.hasShield()) {
-                g.drawString("[ 보유 중인 특수 무기 ]", 20, y); y += 20;
-            }
-            if (ship.hasBomb())  { g.drawString("• 폭탄 x" + ship.getBombCount() + " (B키)", 20, y); y += 20; }
-            if (ship.hasIceWeapon()) { g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount() + " (I키)", 20, y); y += 20; }
-            if (ship.hasShield()) { 
-                g.drawString("• 방어막 x" + ship.getShieldCount() + " (S키: 요새 보호)", 20, y); 
-            }
         }
         if (fortress != null) {
-            g.drawString("요새 HP: " + fortress.getHP(), 20, 150);
+            g.drawString("요새 HP: " + fortress.getHP(), 20, 130);
         }
 
         // 오른쪽 상단에 보유 아이템 목록 표시
@@ -154,14 +162,28 @@ public class UIManager {
         Shop shop = game.getShop();
         if (shop == null || ship == null) return;
 
-        g.setColor(new Color(0, 0, 0, 200));
-        g.fillRect(0, 0, 800, 600);
+        // 배경 - 스프라이트가 있으면 사용, 없으면 반투명 검은색
+        if (shopBackground != null) {
+            // 배경 스프라이트를 전체 화면에 맞게 그리기
+            shopBackground.drawScaled(g, 0, 0, 800, 600);
+        } else {
+            g.setColor(new Color(0, 0, 0, 200));
+            g.fillRect(0, 0, 800, 600);
+        }
 
-        g.setColor(Color.white);
-        g.setFont(titleFont);
-        g.drawString("★ SHOP ★", 360, 60);
+        // 타이틀 - 스프라이트가 있으면 사용, 없으면 텍스트
+        if (shopTitle != null) {
+            int titleX = (800 - shopTitle.getWidth()) / 2;
+            shopTitle.draw(g, titleX, 20);
+        } else {
+            g.setColor(Color.white);
+            g.setFont(titleFont);
+            g.drawString("★ SHOP ★", 360, 60);
+        }
 
+        // 보유 금액 표시
         g.setFont(smallFont);
+        g.setColor(Color.white);
         g.drawString("현재 보유 금액: " + ship.getMoney() + " 골드", 330, 90);
 
         List<Item> items = shop.getItemsForSale();
@@ -173,8 +195,15 @@ public class UIManager {
             int x = startX + col * (itemWidth + gap);
             int y = startY + row * (itemHeight + gap / 2);
 
-            g.setColor(new Color(50, 50, 50, 150));
-            g.fillRect(x, y, itemWidth, itemHeight - 5);
+            // 아이템 슬롯 - 스프라이트가 있으면 사용, 없으면 사각형
+            if (shopItemSlot != null) {
+                shopItemSlot.drawScaled(g, x, y, itemWidth, itemHeight - 5);
+            } else {
+                g.setColor(new Color(50, 50, 50, 150));
+                g.fillRect(x, y, itemWidth, itemHeight - 5);
+            }
+
+            // 아이템 정보 텍스트
             g.setColor(Color.white);
             g.drawString((i + 1) + ". " + item.getName() + " (가격: " + item.getCost() + "골드)", x + 20, y + 25);
 

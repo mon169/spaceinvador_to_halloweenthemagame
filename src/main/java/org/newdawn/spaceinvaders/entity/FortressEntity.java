@@ -20,6 +20,12 @@ public class FortressEntity extends Entity {
 
     /** 요새가 피해를 받았을 때 HP 감소 */
     public void damage(int amount) {
+        // 🛡 방어막이 활성화되어 있으면 피해 무시 (무적)
+        if (game.hasActiveShield()) {
+            System.out.println("🛡 방어막이 요새 피해를 막았습니다! (무적 상태)");
+            return;
+        }
+        
         hp -= amount;
         if (hp <= 0) {
             hp = 0;
