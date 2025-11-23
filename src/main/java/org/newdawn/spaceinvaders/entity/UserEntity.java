@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.shop.Item;
 
@@ -92,7 +93,6 @@ public class UserEntity extends Entity {
     public void takeDamage(int damage) {
         // 🛡 방어막이 활성화되어 있으면 피해 무시 (무적)
         if (game.hasActiveShield()) {
-            System.out.println("🛡 방어막이 플레이어 피해를 막았습니다! (무적 상태)");
             return;
         }
         
@@ -162,14 +162,7 @@ public class UserEntity extends Entity {
         return false;
     }
 
-    public void spendMoney(int amount) { 
-        if (this.money >= amount) {
-            this.money -= amount;
-            System.out.println("💰 골드 차감: " + amount + " (남은 골드: " + this.money + ")");
-        } else {
-            System.out.println("⚠️ 골드 부족: 필요 " + amount + ", 보유 " + this.money);
-        }
-    }
+    public void spendMoney(int amount) { this.money -= amount; }
     public void earnMoney(int amount)  { this.money += amount; }
     public int getMoney()              { return money; }
 
@@ -177,18 +170,9 @@ public class UserEntity extends Entity {
     // 🔹 무기 및 특수 기능
     //   (Game.itemsAllowed() 의존 제거 → 항상 사용 가능)
     // =====================================================
-    public void giveBomb()      { 
-        this.bombCount++; 
-        System.out.println("💣 폭탄 획득! 현재 개수: " + this.bombCount);
-    }
-    public void giveIceWeapon() { 
-        this.iceWeaponCount++; 
-        System.out.println("🧊 얼음 무기 획득! 현재 개수: " + this.iceWeaponCount);
-    }
-    public void giveShield()    { 
-        this.shieldCount++; 
-        System.out.println("🛡 방어막 획득! 현재 개수: " + this.shieldCount + " (hasShield=" + hasShield() + ")");
-    }
+    public void giveBomb()      { this.bombCount++; }
+    public void giveIceWeapon() { this.iceWeaponCount++; }
+    public void giveShield()    { this.shieldCount++; }
 
     public boolean hasBomb()       { return bombCount > 0; }
     public boolean hasIceWeapon()  { return iceWeaponCount > 0; }
@@ -214,28 +198,13 @@ public class UserEntity extends Entity {
         }
     }
 
-    /** 요새 방어막 활성화 */
     public void activateShield() {
-        System.out.println("🛡 activateShield() 호출됨 - shieldCount=" + shieldCount + ", fortress=" + (game.getFortress() != null));
-        try {
-            if (shieldCount > 0 && game.getFortress() != null) {
-                // 지속시간은 항상 5초로 고정 (무적 시간)
-                int duration = 5000;
-                ShieldEntity shield = new ShieldEntity(game, game.getFortress(), duration);
-                game.addEntity(shield);
-                shieldCount--;
-                System.out.println("✅ 요새 방어막 활성화 성공! (5초 무적, 남은 개수: " + shieldCount + ")");
-            } else {
-                if (shieldCount <= 0) {
-                    System.out.println("⚠️ 방어막 사용 불가: 보유 개수가 0입니다. 상점에서 구매하거나 보상으로 받아주세요.");
-                }
-                if (game.getFortress() == null) {
-                    System.out.println("⚠️ 방어막 사용 불가: 요새가 존재하지 않습니다.");
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("❌ 방어막 활성화 오류: " + e.getMessage());
-            e.printStackTrace();
+        if (shieldCount > 0 && game.getFortress() != null) {
+            // 지속시간은 항상 5초로 고정 (무적 시간)
+            int duration = 5000;
+            game.addEntity(new ShieldEntity(game, game.getFortress(), duration));
+            shieldCount--;
+            System.out.println("🛡 방어막 활성화 (5초 무적)");
         }
     }
 
@@ -254,8 +223,6 @@ public class UserEntity extends Entity {
         this.firingInterval = other.firingInterval;
         this.money          = other.money;
         this.inventory      = new ArrayList<>(other.inventory);
-        
-        System.out.println("📋 상태 복사 완료 - shieldCount: " + other.shieldCount + " → " + this.shieldCount + " (hasShield=" + this.hasShield() + ")");
     }
 
     // =====================================================

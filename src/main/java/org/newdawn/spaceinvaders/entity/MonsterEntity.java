@@ -245,13 +245,6 @@ public class MonsterEntity extends Entity {
             ship.takeDamage(10);
             game.removeEntity(this);
         }
-        // 🏰 요새와 충돌 시 요새 피해 (방어막이 있으면 방어막이 먼저 충돌하여 처리됨)
-        if (other instanceof FortressEntity) {
-            FortressEntity fortress = (FortressEntity) other;
-            fortress.damage(50); // 몬스터 충돌로 50 데미지
-            game.removeEntity(this);
-            System.out.println("💥 몬스터가 요새와 충돌! 요새 HP: " + fortress.getHP());
-        }
     }
 
     @Override

@@ -21,7 +21,8 @@ public class EnemyShotEntity extends Entity {
     private final Entity owner;
     private final String shotKind;
 
-    // 이동 속도는 dx, dy로 직접 사용됨
+    // 이동 속도
+    private double vx, vy;
 
     // 🔹 잔상 관련
     private static final int TRAIL_LEN = 3;
@@ -37,6 +38,8 @@ public class EnemyShotEntity extends Entity {
                            double vx, double vy, String shotKind, Entity owner) {
         super(spritePath, x, y);
         this.game = game;
+        this.vx = vx;
+        this.vy = vy;
         this.dx = vx;
         this.dy = vy;
         this.owner = owner;

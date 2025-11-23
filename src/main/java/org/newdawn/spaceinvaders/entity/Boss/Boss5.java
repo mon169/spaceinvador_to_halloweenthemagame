@@ -50,6 +50,7 @@ public class Boss5 extends MonsterEntity {
     private long shakeDuration = 2500;
 
     private final List<Sprite> batSprites = new ArrayList<>();
+    private Sprite flashSprite;
     private Sprite spriteLeft;
     private Sprite spriteRight;
 
@@ -71,6 +72,7 @@ public class Boss5 extends MonsterEntity {
 
         batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
         batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
+        flashSprite = SpriteStore.get().getSprite("sprites/bat1.png");
     }
 
     @Override

@@ -21,11 +21,13 @@ import org.newdawn.spaceinvaders.entity.ShieldEntity;
 
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
+
 import org.newdawn.spaceinvaders.shop.Shop;
 
 import org.newdawn.spaceinvaders.manager.EntityManager;
 import org.newdawn.spaceinvaders.manager.BackgroundManager;
 import org.newdawn.spaceinvaders.manager.StageManager;
+import org.newdawn.spaceinvaders.manager.StateManager;
 import org.newdawn.spaceinvaders.manager.InputManager;
 import org.newdawn.spaceinvaders.manager.UIManager;
 
@@ -64,6 +66,7 @@ public class Game extends Canvas {
     private EntityManager entityManager;
     private BackgroundManager backgroundManager;
     private StageManager stageManager;
+    private StateManager stateManager;
     private InputManager inputManager;
     private UIManager uiManager;
     private org.newdawn.spaceinvaders.manager.RewardManager rewardManager;
@@ -81,6 +84,7 @@ public class Game extends Canvas {
     private boolean firePressed = false;
 
     private boolean shopOpen = false;
+    private boolean bossSpawned = false;
 
     private int currentStage = 1;
     private final int MAX_STAGE = 5;
@@ -93,6 +97,8 @@ public class Game extends Canvas {
     private int alienCount = 0; // 🧮 현재 몬스터 수
 
     private String message = "";
+    // flag: 다음 startGameOrNextStage 호출 시 이전 플레이어 상태를 유지할지 여부
+    private boolean retainPlayerOnNextStart = false;
 
     private final int BASE_TIME_LIMIT = 150;
     private final int LIFE_LIMIT = 3;
@@ -142,6 +148,7 @@ public class Game extends Canvas {
         entityManager = new EntityManager(this, entities, removeList);
         backgroundManager = new BackgroundManager();
         uiManager = new UIManager(this);
+        stateManager = new StateManager(this, uiManager);
         stageManager = new StageManager(this, entityManager);
         inputManager = new InputManager(this);
         rewardManager = new org.newdawn.spaceinvaders.manager.RewardManager();
@@ -159,13 +166,8 @@ public class Game extends Canvas {
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
 
-        // 🔥[ADDED] 2P 엔티티(상대)도 미리 추가해두고, 네트워크로 좌표 동기화
-        try {
-            ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520); // 2P 전용 클래스 사용
-            entities.add(ship2);
-        } catch (Exception ignore) {
-            // 만약 리소스가 아직 없다면 생략해도 게임은 동작
-        }
+        // 🔥[ADDED] 2P 엔티티(상대)는 네트워크 연결 시에만 생성
+        // initSocket()이 호출된 후 networkConnected 상태를 확인하여 생성
 
         stageManager.loadStage(currentStage);
         stageManager.resetAllStageFlags(); // ✅ 보스/웨이브 리셋 호출
@@ -180,6 +182,14 @@ public class Game extends Canvas {
             client = new GameClient("localhost", 9999, this::onPacketReceived);
             networkConnected = true;
             System.out.println("✅ 소켓 연결 성공 — 2인 협동 활성화 (ID: " + playerId + ")");
+            
+            // 네트워크 연결 성공 시에만 2P 엔티티 생성
+            try {
+                ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
+                entities.add(ship2);
+            } catch (Exception ignore) {
+                // 만약 리소스가 아직 없다면 생략해도 게임은 동작
+            }
         } catch (IOException e) {
             System.out.println("⚠️ 소켓 서버 연결 실패 — 싱글 모드로 실행합니다.");
             networkConnected = false; // 🔥 추가
@@ -229,8 +239,10 @@ public class Game extends Canvas {
 
                 Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
 
-                // 배경
-                backgroundManager.draw(g, bg, 0);
+                // 배경 (시작 화면이 아닐 때만 게임 배경 그리기)
+                if (!waitingForKeyPress || shopOpen || (message != null && !message.isEmpty())) {
+                    backgroundManager.draw(g, bg, 0);
+                }
 
                 if (!waitingForKeyPress) {
                     stageManager.spawnWave(currentStage, stageStartTime);
@@ -327,38 +339,39 @@ public class Game extends Canvas {
         else currentStage = stageToRestart;
 
         stageStartTime = System.currentTimeMillis();
-        
-        // 기존 ship 상태 저장 (상점 구매 반영을 위해)
-        UserEntity oldShip = ship;
-        
+        // 기존 플레이어 상태 보존을 위해 기존 ship 참조 보관
+        UserEntity oldShip = this.ship;
+
         entities.clear();
 
-        // 새 ship 생성
-        ship = new UserEntity(this, "sprites/userr.png", 370, 520);
-        
-        // 기존 ship이 있으면 상태 복사 (상점 구매 반영)
-        if (oldShip != null) {
-            ship.copyStateFrom(oldShip);
-            System.out.println("✅ 이전 스테이지 상태 복사 완료 (골드: " + ship.getMoney() + ", 방어력: " + ship.getDefense() + ", 공격력: " + ship.getAttackPower() + ")");
+        UserEntity newShip = new UserEntity(this, "sprites/userr.png", 370, 520);
+        // 다음 시작에서 이전 상태를 보존하도록 표시된 경우에만 복사
+        if (retainPlayerOnNextStart && oldShip != null) {
+            newShip.copyStateFrom(oldShip);
         }
-        
+        // 보존 플래그는 일회성
+        retainPlayerOnNextStart = false;
+
+        ship = newShip;
         entities.add(ship);
 
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
 
-        // 🔥[ADDED] 재시작 시에도 2P 엔티티 추가
-        try {
-            ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
-            entities.add(ship2);
-        } catch (Exception ignore) {}
+        // 🔥[ADDED] 재시작 시에도 네트워크 연결되어 있으면 2P 엔티티 추가
+        if (networkConnected) {
+            try {
+                ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
+                entities.add(ship2);
+            } catch (Exception ignore) {}
+        }
 
         stageManager.loadStage(currentStage);
-        updateBackgroundForStage(currentStage);
 
         leftPressed = rightPressed = firePressed = false;
         waitingForKeyPress = false;
         shopOpen = false;
+        bossSpawned = false;
         message = "";
 
         countMonsters();
@@ -373,49 +386,6 @@ public class Game extends Canvas {
         shopOpen = false;
     }
 
-    // ========= 배경 변경 =========
-    private void updateBackgroundForStage(int stage) {
-        String bgPath;
-        switch (stage) {
-            case 1:
-                // Stage1은 초기에는 기본 배경 사용 (보스 등장 시 franken.png로 변경됨)
-                bgPath = "bg/level1_background.jpg";
-                break;
-            case 2:
-                bgPath = "bg/wbg.jpg";
-                break;
-            case 3:
-                bgPath = "bg/desert.JPG";
-                break;
-            case 4:
-                bgPath = "bg/zombiebg.jpg";
-                break;
-            case 5:
-                bgPath = "bg/bossbg.jpg";
-                break;
-            default:
-                bgPath = "bg/level1_background.jpg";
-                break;
-        }
-        try {
-            bg = SpriteStore.get().getSprite(bgPath);
-            System.out.println("🖼️ Stage " + stage + " 배경 변경: " + bgPath);
-        } catch (Exception e) {
-            System.err.println("⚠️ 배경 로드 실패: " + bgPath + " - " + e.getMessage());
-        }
-    }
-
-    /** 배경을 동적으로 변경하는 public 메서드 */
-    public void setBackground(String bgPath) {
-        try {
-            bg = SpriteStore.get().getSprite(bgPath);
-            System.out.println("🖼️ 배경 변경: " + bgPath);
-        } catch (Exception e) {
-            System.err.println("⚠️ 배경 로드 실패: " + bgPath + " - " + e.getMessage());
-        }
-    }
-
-    // ========= 이벤트(보스/승패/적 처치) =========
     public void restartCurrentStage() {
         System.out.println("💀 Stage " + currentStage + " 재도전 시작");
         startGameOrNextStage(currentStage);
@@ -423,6 +393,7 @@ public class Game extends Canvas {
 
     // ========= 보스 처치 이벤트 =========
     public void bossDefeated() {
+        bossSpawned = false;
         if (ship != null) ship.earnMoney(500);
 
         message = "🎉 Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
@@ -466,16 +437,10 @@ public class Game extends Canvas {
 
     // ========= 상점 =========
     public void handleShopKey(char key) {
-        System.out.println("🛒 handleShopKey 호출: key=" + key + ", shopOpen=" + shopOpen + ", shop=" + (shop != null) + ", ship=" + (ship != null));
-        if (!shopOpen || shop == null || ship == null) {
-            System.out.println("⚠️ 상점 구매 불가: shopOpen=" + shopOpen + ", shop=" + (shop != null) + ", ship=" + (ship != null));
-            return;
-        }
+        if (!shopOpen || shop == null || ship == null) return;
 
         if (key >= '1' && key <= '9') {
-            int index = key - '1';
-            System.out.println("💰 아이템 구매 시도: 인덱스 " + index);
-            purchaseItem(index);
+            purchaseItem(key - '1');
         } else if (key == 'r' || key == 'R') {
             if (!shopOpen && waitingForKeyPress) {
                 // 💀 사망 상태에서 R → 스테이지 재도전
@@ -489,6 +454,8 @@ public class Game extends Canvas {
             } else {
                 // ✅ 다음 스테이지로 이동
                 currentStage++;
+                // 다음 시작에서는 플레이어가 상점에서 구매한 상태를 유지
+                this.retainPlayerOnNextStart = true;
                 waitingForKeyPress = false;
                 shopOpen = false;
                 stageStartTime = System.currentTimeMillis();

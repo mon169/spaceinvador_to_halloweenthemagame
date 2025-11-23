@@ -99,7 +99,7 @@ public class Shop {
         // 에너지 실드 아이템 추가 
         itemsForSale.add(new Item(
             "거미줄 보호막",
-            "요새를 보호하는 방어막입니다. 구매 후 S키를 눌러\n요새 방어막을 활성화할 수 있습니다.\n5초 동안 무적 상태가 됩니다.",
+            "거미가 짠 달콤한 실로 만든 보호막!\n적의 총알을 한 번 막아줍니다. (S키로 사용)",
             400
         ) {
             @Override
@@ -111,39 +111,20 @@ public class Shop {
 
     // 아이템 구매 로직
     public void purchaseItem(UserEntity playerShip, int itemIndex) {
-        System.out.println("🛒 purchaseItem 호출: itemIndex=" + itemIndex + ", itemsForSale.size()=" + itemsForSale.size());
-        
         if (itemIndex < 0 || itemIndex >= itemsForSale.size()) {
-            System.out.println("❌ 잘못된 상품 번호입니다. (인덱스: " + itemIndex + ", 범위: 0-" + (itemsForSale.size() - 1) + ")");
+            System.out.println("잘못된 상품 번호입니다.");
             return;
         }
 
         Item selectedItem = itemsForSale.get(itemIndex);
-        int currentMoney = playerShip.getMoney();
-        int itemCost = selectedItem.getCost();
-        
-        System.out.println("💰 구매 시도: " + selectedItem.getName() + " (가격: " + itemCost + "골드, 보유: " + currentMoney + "골드)");
 
-        if (currentMoney >= itemCost) {
-            playerShip.spendMoney(itemCost);
+        if (playerShip.getMoney() >= selectedItem.getCost()) {
+            playerShip.spendMoney(selectedItem.getCost());
             playerShip.addItem(selectedItem);
-            
-            // 구매 전 상태 로그
-            int oldShieldCount = playerShip.getShieldCount();
-            boolean oldHasShield = playerShip.hasShield();
-            
-            selectedItem.applyEffect(playerShip); // 아이템 효과 적용!
-            
-            // 구매 후 상태 로그
-            int newShieldCount = playerShip.getShieldCount();
-            boolean newHasShield = playerShip.hasShield();
-            
-            System.out.println("✅ '" + selectedItem.getName() + "' 구매 완료! (남은 골드: " + playerShip.getMoney() + ")");
-            if (selectedItem.getName().equals("거미줄 보호막") || selectedItem.getName().equals("방어막")) {
-                System.out.println("🛡 방어막 구매 확인 - 이전: " + oldShieldCount + " (hasShield=" + oldHasShield + ") → 이후: " + newShieldCount + " (hasShield=" + newHasShield + ")");
-            }
+            selectedItem.applyEffect(playerShip); // 아이템 효과 적용
+            System.out.printf("'%s' 구매를 완료했습니다!\n", selectedItem.getName());
         } else {
-            System.out.println("❌ 잔액이 부족합니다. (필요: " + itemCost + "골드, 보유: " + currentMoney + "골드)");
+            System.out.println("잔액이 부족합니다.");
         }
     }
     

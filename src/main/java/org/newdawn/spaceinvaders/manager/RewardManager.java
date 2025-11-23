@@ -107,7 +107,7 @@ public class RewardManager {
         g.setFont(messageFont);
 
         int startX = 580;  // 우상단 X 좌표
-        int startY = 200;  // 보유 아이템 패널 아래쪽 (겹치지 않도록)
+        int startY = 50;   // 상단에 배치 (보유 아이템 패널 위쪽)
         int lineHeight = 22; // 줄 간격
 
         // 반투명 배경
