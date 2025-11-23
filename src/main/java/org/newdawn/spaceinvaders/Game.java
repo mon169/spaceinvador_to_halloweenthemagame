@@ -44,6 +44,9 @@ import java.util.UUID;
  * - Stage1~5 완전 호환
  */
 public class Game extends Canvas {
+    private static final int MAX_STAGE = 5;
+    private static final int BASE_TIME_LIMIT = 150;
+    private static final int LIFE_LIMIT = 3;
 
     // ========= 기본 디스플레이/루프 =========
     private BufferStrategy strategy;
@@ -87,7 +90,6 @@ public class Game extends Canvas {
     private boolean bossSpawned = false;
 
     private int currentStage = 1;
-    private final int MAX_STAGE = 5;
 
     private long stageStartTime = 0;
     private long lastFpsTime = 0;
@@ -100,8 +102,6 @@ public class Game extends Canvas {
     // flag: 다음 startGameOrNextStage 호출 시 이전 플레이어 상태를 유지할지 여부
     private boolean retainPlayerOnNextStart = false;
 
-    private final int BASE_TIME_LIMIT = 150;
-    private final int LIFE_LIMIT = 3;
 
     private Sprite bg;
     private Shop shop = new Shop();
