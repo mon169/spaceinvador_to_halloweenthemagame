@@ -24,7 +24,7 @@ import org.newdawn.spaceinvaders.entity.MonsterEntity;
  */
 public class Boss4 extends MonsterEntity {
     private final Game game;
-    private int health = 1; // 임시: 테스트용 (한 대 맞으면 죽음)
+    private int health = 10;
     private boolean enraged = false;
 
     // 신체 던지기(궁극기) 관련
@@ -49,7 +49,6 @@ public class Boss4 extends MonsterEntity {
     private long shakeDuration = 2500;
 
     private final List<Sprite> limbSprites = new ArrayList<>();
-    private Sprite flashSprite;
     private Sprite spriteLeft;
     private Sprite spriteRight;
 
@@ -71,8 +70,7 @@ public class Boss4 extends MonsterEntity {
 
         limbSprites.add(SpriteStore.get().getSprite("sprites/arm1.png"));
         limbSprites.add(SpriteStore.get().getSprite("sprites/leg1.png"));
-        limbSprites.add(SpriteStore.get().getSprite("sprites/head1.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/blood_flash.png");
+        limbSprites.add(SpriteStore.get().getSprite("sprites/heart1.png"));
     }
 
     @Override

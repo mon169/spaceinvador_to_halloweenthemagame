@@ -69,9 +69,9 @@ public class InputManager extends KeyAdapter {
 
             // 메시지 상태 또는 첫 시작 → 아무 키나 시작
             // R키는 재시작/다음 스테이지에도 사용되지만,
-            // 여기서는 “시작”으로 처리
+            // 여기서는 "시작"으로 처리
             game.setWaitingForKeyPress(false);
-            game.startGameOrNextStage(false);
+            game.startGameOrNextStage(1); // Stage1부터 시작
         }
     }
 }

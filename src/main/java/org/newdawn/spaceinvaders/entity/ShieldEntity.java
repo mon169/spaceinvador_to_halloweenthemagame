@@ -12,7 +12,6 @@ import org.newdawn.spaceinvaders.Game;
 public class ShieldEntity extends Entity {
     private final Game game;
     private final FortressEntity fortress;
-    private final int duration;      // 방어막 지속 시간 (ms)
     private final long endTime;      // 종료 시간
     private boolean active = false;
 
@@ -24,7 +23,6 @@ public class ShieldEntity extends Entity {
         
         this.game = game;
         this.fortress = fortress;
-        this.duration = duration;
         this.endTime = System.currentTimeMillis() + duration;
         this.active = true;
     }

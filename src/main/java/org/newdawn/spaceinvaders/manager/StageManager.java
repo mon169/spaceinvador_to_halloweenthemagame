@@ -7,7 +7,8 @@ import org.newdawn.spaceinvaders.Stage.*;
 
 /**
  * 🧩 StageManager — 스테이지 로드/업데이트 관리
- * - 각 Stage 클래스는 MonsterEntity & Boss 기반
+ * - currentStage 전환 시 즉시 반영
+ * - 리셋은 해당 스테이지만 적용
  */
 public class StageManager {
     private final Game game;
@@ -20,7 +21,7 @@ public class StageManager {
         this.entityManager = entityManager;
     }
 
-    /** 스테이지 로드 (필요 시 초기화) */
+    /** ✅ 스테이지 로드 (현재 스테이지만 리셋) */
     public void loadStage(int stageId) {
         stages.computeIfAbsent(1, k -> new Stage1(game));
         stages.computeIfAbsent(2, k -> new Stage2(game));
@@ -31,15 +32,27 @@ public class StageManager {
         current = stages.get(stageId);
         if (current == null) current = stages.get(1);
 
+        current.resetStageFlags();
         current.init();
-        System.out.println("🚀 Stage " + stageId + " 로드 완료");
+        System.out.println("🚀 Stage " + stageId + " 로드 완료 (현재 스테이지만 리셋)");
     }
 
-    /** 매 프레임마다 호출 (wave 업데이트) */
+    /** 매 프레임마다 호출 */
     public void spawnWave(int currentStage, long stageStartTime) {
         if (current == null || current.id() != currentStage) {
+            System.out.println("🔁 StageManager: 스테이지 갱신 필요 → " + currentStage);
             loadStage(currentStage);
         }
-        current.update();
+        if (current != null) current.update();
     }
+
+    /** ✅ 전체 리셋 (게임 전체 초기화 시 사용) */
+    public void resetAllStageFlags() {
+        for (Stage stage : stages.values()) {
+            stage.resetStageFlags();
+        }
+        System.out.println("♻️ 모든 스테이지 상태 리셋 완료 (보스 및 웨이브 재활성화 가능)");
+    }
+
+    public Stage getCurrentStage() { return current; }
 }

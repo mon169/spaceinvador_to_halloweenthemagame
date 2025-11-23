@@ -17,9 +17,6 @@ import org.newdawn.spaceinvaders.entity.FortressEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
-import org.newdawn.spaceinvaders.Sprite;
-import org.newdawn.spaceinvaders.SpriteStore;
-
 import org.newdawn.spaceinvaders.shop.Shop;
 
 import org.newdawn.spaceinvaders.manager.EntityManager;
@@ -30,9 +27,9 @@ import org.newdawn.spaceinvaders.manager.UIManager;
 
 /**
  * 🎮 Game — 메인 루프 & 게임 상태 관리자
- * - StartScreen → Game() → gameLoop() 순서로 진입
- * - Stage1~5(네가 준 MonsterEntity/Boss 구조)와 완전 호환
- * - UIManager로 HUD/상점/메시지 출력
+ * - 죽으면 현재 스테이지 그대로 재시작
+ * - 보스 처치 시 상점 → R 키로 다음 스테이지 이동
+ * - Stage1~5 완전 호환
  */
 public class Game extends Canvas {
 
@@ -65,7 +62,6 @@ public class Game extends Canvas {
     private boolean firePressed = false;
 
     private boolean shopOpen = false;
-    private boolean bossSpawned = false; // 보스 스폰 여부 필요 시 사용
 
     private int currentStage = 1;
     private final int MAX_STAGE = 5;
@@ -75,16 +71,13 @@ public class Game extends Canvas {
     private int fps = 0;
     private long lastFire = 0;
 
-    private int alienCount = 0; // UI/스테이지/클리어 로직에서 참조
+    private int alienCount = 0; // 🧮 현재 몬스터 수
 
-    // UI 메시지
     private String message = "";
 
-    // ========= 규칙값 =========
-    private final int BASE_TIME_LIMIT = 150; // ⏱ 기본 150초
-    private final int LIFE_LIMIT = 3;        // Stage3 제한 체력
+    private final int BASE_TIME_LIMIT = 150;
+    private final int LIFE_LIMIT = 3;
 
-    // ========= 기타 =========
     private Sprite bg;
     private Shop shop = new Shop();
 
@@ -106,7 +99,6 @@ public class Game extends Canvas {
 
         setBounds(0, 0, 800, 600);
         panel.add(this);
-
         setIgnoreRepaint(true);
 
         container.pack();
@@ -121,7 +113,6 @@ public class Game extends Canvas {
 
         createBufferStrategy(2);
         strategy = getBufferStrategy();
-
         requestFocus();
     }
 
@@ -140,17 +131,29 @@ public class Game extends Canvas {
     private void initEntities() {
         entities.clear();
 
-        // 플레이어
         ship = new UserEntity(this, "sprites/userr.png", 370, 520);
         entities.add(ship);
 
-        // 요새
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
 
-        // 스테이지 로드
         stageManager.loadStage(currentStage);
-        updateBackgroundForStage(currentStage);
+        stageManager.resetAllStageFlags(); // ✅ 보스/웨이브 리셋 호출
+
+        // ✅ 스테이지 로드 후 즉시 몬스터 수 집계
+        countMonsters();
+    }
+
+    // ========= 실시간 몬스터 수 집계 =========
+    public void countMonsters() {
+        int count = 0;
+        for (Entity e : entities) {
+            if (e instanceof MonsterEntity || e.getClass().getSimpleName().equals("BombMonsterEntity")) {
+                count++;
+            }
+        }
+        alienCount = count;
+        System.out.println("📊 현재 몬스터 수: " + alienCount);
     }
 
     // ========= 메인 루프 =========
@@ -163,7 +166,6 @@ public class Game extends Canvas {
                 long delta = now - lastLoopTime;
                 lastLoopTime = now;
 
-                // FPS
                 lastFpsTime += delta;
                 fps++;
                 if (lastFpsTime >= 1000) {
@@ -177,7 +179,6 @@ public class Game extends Canvas {
                 // 배경
                 backgroundManager.draw(g, bg, 0);
 
-                // 스테이지/엔티티 갱신
                 if (!waitingForKeyPress) {
                     stageManager.spawnWave(currentStage, stageStartTime);
                     entityManager.moveEntities(delta);
@@ -186,21 +187,10 @@ public class Game extends Canvas {
                 }
 
                 // 엔티티 그리기
-                for (int i = 0; i < entities.size(); i++) {
-                    entities.get(i).draw(g);
-                }
+                for (Entity e : entities) e.draw(g);
 
-                // UI (HUD/상점/메시지 등)
-                uiManager.drawFullUI(
-                    g,
-                    this,
-                    ship,
-                    fortress,
-                    entities,
-                    message,
-                    shopOpen,
-                    waitingForKeyPress
-                );
+                // UI
+                uiManager.drawFullUI(g, this, ship, fortress, entities, message, shopOpen, waitingForKeyPress);
 
                 // 보상 메시지 렌더링 (우상단 토스트)
                 if (rewardManager != null) {
@@ -210,7 +200,6 @@ public class Game extends Canvas {
                 g.dispose();
                 strategy.show();
 
-                // 입력 반영
                 handleMovement();
                 handleFiring();
 
@@ -218,7 +207,7 @@ public class Game extends Canvas {
             } catch (Exception ex) {
                 System.err.println("⚠️ 게임 루프 오류: " + ex.getMessage());
                 ex.printStackTrace();
-                safelyResetGameState();
+                safelyRestartCurrentStage();
             }
         }
     }
@@ -226,45 +215,34 @@ public class Game extends Canvas {
     // ========= 입력 처리 =========
     private void handleMovement() {
         if (ship == null) return;
-
         ship.setHorizontalMovement(0);
-        if (leftPressed && !rightPressed) {
-            ship.setHorizontalMovement(-ship.getMoveSpeed());
-        } else if (rightPressed && !leftPressed) {
-            ship.setHorizontalMovement(ship.getMoveSpeed());
-        }
+        if (leftPressed && !rightPressed) ship.setHorizontalMovement(-ship.getMoveSpeed());
+        else if (rightPressed && !leftPressed) ship.setHorizontalMovement(ship.getMoveSpeed());
     }
 
     private void handleFiring() {
-        if (ship == null) return;
-        if (!firePressed) return;
-
+        if (ship == null || !firePressed) return;
         tryToFire();
     }
 
     // ========= 공격 =========
     public void tryToFire() {
         if (System.currentTimeMillis() - lastFire < ship.getFiringInterval()) return;
-
         lastFire = System.currentTimeMillis();
         ShotEntity shot = new ShotEntity(this, "sprites/shot.png", ship.getX() + 10, ship.getY() - 30);
         entities.add(shot);
     }
 
     // ========= 스테이지 제어 =========
-    public void startGameOrNextStage(boolean restartFromZero) {
-        UserEntity prev = ship;
-        if (restartFromZero) prev = null;
+    public void startGameOrNextStage(int stageToRestart) {
+        // 0이면 완전 처음부터, 아니면 해당 스테이지에서 재시작
+        if (stageToRestart <= 0) currentStage = 1;
+        else currentStage = stageToRestart;
 
         stageStartTime = System.currentTimeMillis();
         entities.clear();
 
-        if (prev == null) {
-            ship = new UserEntity(this, "sprites/userr.png", 370, 520);
-        } else {
-            ship = new UserEntity(this, "sprites/userr.png", 370, 520);
-            ship.copyStateFrom(prev);
-        }
+        ship = new UserEntity(this, "sprites/userr.png", 370, 520);
         entities.add(ship);
 
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
@@ -276,18 +254,18 @@ public class Game extends Canvas {
         leftPressed = rightPressed = firePressed = false;
         waitingForKeyPress = false;
         shopOpen = false;
-        bossSpawned = false;
         message = "";
-        alienCount = 0;
+
+        countMonsters();
+
+        System.out.println("🔁 Stage " + currentStage + " 재시작 완료");
     }
 
-    private void nextStage() {
-        if (currentStage >= MAX_STAGE) {
-            notifyWin();
-            return;
-        }
-        currentStage++;
-        startGameOrNextStage(false);
+    // ========= 사망 처리 =========
+    public void gameOver() {
+        waitingForKeyPress = true;
+        message = "💀 사망했습니다!\nR 키를 눌러 다시 도전하세요";
+        shopOpen = false;
     }
 
     // ========= 배경 변경 =========
@@ -333,8 +311,13 @@ public class Game extends Canvas {
     }
 
     // ========= 이벤트(보스/승패/적 처치) =========
+    public void restartCurrentStage() {
+        System.out.println("💀 Stage " + currentStage + " 재도전 시작");
+        startGameOrNextStage(currentStage);
+    }
+
+    // ========= 보스 처치 이벤트 =========
     public void bossDefeated() {
-        bossSpawned = false;
         if (ship != null) ship.earnMoney(500);
 
         message = "🎉 Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
@@ -347,14 +330,20 @@ public class Game extends Canvas {
         }
     }
 
+    public void notifyAlienKilled() {
+        alienCount--;
+        if (alienCount < 0) alienCount = 0;
+        System.out.println("💥 몬스터 처치됨 (남은 적: " + alienCount + ")");
+    }
+
     public void notifyDeath() {
-        message = "💀 패배했습니다! 다시 도전하시겠습니까?";
+        message = "💀 패배했습니다! R 키로 다시 도전!";
         waitingForKeyPress = true;
         shopOpen = false;
     }
 
     public void notifyFortressDestroyed() {
-        message = "🏰 요새가 파괴되었습니다!";
+        message = "🏰 요새가 파괴되었습니다!\nR 키를 눌러 다시 도전하세요!";
         waitingForKeyPress = true;
         shopOpen = false;
     }
@@ -365,35 +354,32 @@ public class Game extends Canvas {
         shopOpen = false;
     }
 
-    /** 🔔 적 처치 시(ShotEntity, BombShotEntity 등에서 호출) */
-    public void notifyAlienKilled() {
-        System.out.println("👻 적 처치됨 (현재 남은 적: " + alienCount + ")");
-        
-        // 보상 지급
-        if (ship != null && rewardManager != null) {
-            rewardManager.grantReward(ship);
-        }
-    }
-
     // ========= 상점 =========
     public void handleShopKey(char key) {
         if (!shopOpen || shop == null || ship == null) return;
 
         if (key >= '1' && key <= '9') {
-            int index = key - '1';
-            purchaseItem(index);
+            purchaseItem(key - '1');
         } else if (key == 'r' || key == 'R') {
+            if (!shopOpen && waitingForKeyPress) {
+                // 💀 사망 상태에서 R → 스테이지 재도전
+                restartCurrentStage();
+                return;
+            }
             if (currentStage == MAX_STAGE) {
                 message = "🎆 모든 스테이지 완료!";
                 shopOpen = false;
                 waitingForKeyPress = true;
             } else {
+                // ✅ 다음 스테이지로 이동
                 currentStage++;
-                startGameOrNextStage(false);
+                waitingForKeyPress = false;
+                shopOpen = false;
+                stageStartTime = System.currentTimeMillis();
+                System.out.println("🚀 다음 스테이지로 이동: Stage " + currentStage);
+                startGameOrNextStage(currentStage);
             }
-        } else if (key == 27) { // ESC
-            System.exit(0);
-        }
+        } else if (key == 27) System.exit(0);
     }
 
     public void purchaseItem(int index) {
@@ -405,29 +391,18 @@ public class Game extends Canvas {
     }
 
     // ========= 안전 초기화 =========
-    private void safelyResetGameState() {
-        entities.clear();
-        removeList.clear();
-        waitingForKeyPress = true;
-        shopOpen = false;
-        currentStage = 1;
-        message = "";
-        initEntities();
+    private void safelyRestartCurrentStage() {
+        System.out.println("⚠️ 예외 발생 — 현재 스테이지 재시작");
+        startGameOrNextStage(currentStage);
     }
 
-    // ========= 외부에서 쓰는 조작/종료 =========
-    public void endGame() {
-        System.exit(0);
-    }
-
-    // ========= setters =========
+    // ========= 조작 =========
+    public void endGame() { System.exit(0); }
     public void setLeftPressed(boolean v) { leftPressed = v; }
     public void setRightPressed(boolean v) { rightPressed = v; }
     public void setFirePressed(boolean v) { firePressed = v; }
-
     public boolean isWaitingForKeyPress() { return waitingForKeyPress; }
     public void setWaitingForKeyPress(boolean v) { waitingForKeyPress = v; }
-
     public boolean isShopOpenFlag() { return shopOpen; }
     public void setShopOpenFlag(boolean v) { shopOpen = v; }
 
@@ -436,11 +411,8 @@ public class Game extends Canvas {
     public FortressEntity getFortress() { return fortress; }
     public List<Entity> getEntities() { return entities; }
 
-    // ========= 수정된 엔티티 관리 =========
     public void addEntity(Entity e) {
         entities.add(e);
-
-        // 👾 몬스터 추가 시 카운트 증가
         if (e instanceof MonsterEntity || e.getClass().getSimpleName().equals("BombMonsterEntity")) {
             alienCount++;
             System.out.println("👾 몬스터 추가됨: 총 " + alienCount + "마리");
@@ -448,24 +420,14 @@ public class Game extends Canvas {
     }
 
     public void removeEntity(Entity e) {
-        removeList.add(e);
-
-        // 👻 몬스터 제거 시 카운트 감소
-        if (e instanceof MonsterEntity || e.getClass().getSimpleName().equals("BombMonsterEntity")) {
-            alienCount--;
-            if (alienCount < 0) alienCount = 0;
-            System.out.println("🧹 몬스터 제거됨: 남은 " + alienCount + "마리");
-        }
+        if (!removeList.contains(e)) removeList.add(e);
     }
 
     public long getStageStartTime() { return stageStartTime; }
     public int getCurrentStage() { return currentStage; }
-
     public int getAlienCount() { return alienCount; }
     public void setAlienCount(int count) { alienCount = count; }
-
     public int getBaseTimeLimit() { return BASE_TIME_LIMIT; }
     public int getLifeLimit() { return LIFE_LIMIT; }
-
     public Shop getShop() { return this.shop; }
 }

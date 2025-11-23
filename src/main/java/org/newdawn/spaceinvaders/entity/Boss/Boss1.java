@@ -24,7 +24,7 @@ import org.newdawn.spaceinvaders.entity.MonsterEntity;
  */
 public class Boss1 extends MonsterEntity {
     private final Game game;
-    private int health = 1; // 임시: 테스트용 (한 대 맞으면 죽음)
+    private int health = 10; // ✅ 체력 복원 (1000 → 1500)
     private boolean enraged = false;
 
     // 전기 궁극기 관련
@@ -49,7 +49,6 @@ public class Boss1 extends MonsterEntity {
     private long shakeDuration = 2500;
 
     private final List<Sprite> lightningSprites = new ArrayList<>();
-    private Sprite flashSprite;
     private Sprite spriteLeft;
     private Sprite spriteRight;
 
@@ -72,7 +71,6 @@ public class Boss1 extends MonsterEntity {
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/lightning1.png");
     }
 
     @Override

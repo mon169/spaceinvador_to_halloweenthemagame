@@ -2,7 +2,6 @@ package org.newdawn.spaceinvaders.manager;
 
 import java.awt.*;
 import java.util.List;
-import javax.swing.*;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;

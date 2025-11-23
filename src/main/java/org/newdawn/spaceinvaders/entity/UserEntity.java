@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.shop.Item;
 
