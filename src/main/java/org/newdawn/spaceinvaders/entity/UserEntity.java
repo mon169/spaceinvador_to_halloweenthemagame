@@ -91,6 +91,11 @@ public class UserEntity extends Entity {
     }
 
     public void takeDamage(int damage) {
+        // 🛡 방어막이 활성화되어 있으면 피해 무시 (무적)
+        if (game.hasActiveShield()) {
+            return;
+        }
+        
         int actualDamage = Math.max(1, damage - defense);
         currentHealth -= actualDamage;
         if (currentHealth <= 0) game.notifyDeath();
@@ -194,11 +199,12 @@ public class UserEntity extends Entity {
     }
 
     public void activateShield() {
-        if (shieldCount > 0) {
-            int duration = Math.max(3000, defense * 1000);
-            game.addEntity(new ShieldEntity(game, this, duration));
+        if (shieldCount > 0 && game.getFortress() != null) {
+            // 지속시간은 항상 5초로 고정 (무적 시간)
+            int duration = 5000;
+            game.addEntity(new ShieldEntity(game, game.getFortress(), duration));
             shieldCount--;
-            System.out.println("🛡 방어막 활성화 (" + duration / 1000 + "초)");
+            System.out.println("🛡 방어막 활성화 (5초 무적)");
         }
     }
 
