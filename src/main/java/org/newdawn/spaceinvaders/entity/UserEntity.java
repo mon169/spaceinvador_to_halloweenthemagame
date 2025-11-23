@@ -37,8 +37,8 @@ public class UserEntity extends Entity {
 
     // 방향 및 스프라이트 관리
     private boolean movingRight = true;
-    private final String spriteRight = "sprites/userr.png";
-    private final String spriteLeft  = "sprites/userl.png";
+    private final String spriteRight = "sprites/user1r.png";
+    private final String spriteLeft  = "sprites/user1l.png";
 
     public UserEntity(Game game, String ref, int x, int y) {
         super(ref, x, y);
@@ -176,7 +176,6 @@ public class UserEntity extends Entity {
     // =====================================================
     // 🔹 무기 및 특수 기능
     //   (Game.itemsAllowed() 의존 제거 → 항상 사용 가능)
-    //   나중에 제한을 다시 걸고 싶으면 조건만 추가해줘.
     // =====================================================
     public void giveBomb()      { 
         this.bombCount++; 
@@ -201,14 +200,16 @@ public class UserEntity extends Entity {
 
     public void useBomb() {
         if (bombCount > 0) {
-            game.addEntity(new BombShotEntity(game, "sprites/shot.png", (int) x, (int) y - 30));
+            System.out.println("💣 useBomb 호출 — 폭탄 발사 시도 (남은: " + bombCount + ")");
+            game.addEntity(new org.newdawn.spaceinvaders.entity.BombShotEntity(game, "sprites/bombshot.png", (int) x, (int) y - 30));
             bombCount--;
+            System.out.println("💣 폭탄 생성 완료 — 남은 폭탄: " + bombCount);
         }
     }
 
     public void useIceWeapon() {
         if (iceWeaponCount > 0) {
-            game.addEntity(new IceShotEntity(game, "sprites/shot.png", (int) x, (int) y));
+            game.addEntity(new IceShotEntity(game, "sprites/iceshot.png", (int) x, (int) y));
             iceWeaponCount--;
         }
     }
@@ -271,4 +272,15 @@ public class UserEntity extends Entity {
 
     public int getWidth()  { return (int) (sprite.getWidth()  * 0.5); }
     public int getHeight() { return (int) (sprite.getHeight() * 0.5); }
+
+    // =====================================================
+    // 🔹 Game.java와 연동용 Getter / Setter (네트워크용)
+    // =====================================================
+    public void setX(int x) { this.x = x; }
+    public void setY(int y) { this.y = y; }
+    public int getHp() { return this.currentHealth; }
+
+    private int score = 0;
+    public int getScore() { return this.score; }
+    public void addScore(int value) { this.score += value; }
 }

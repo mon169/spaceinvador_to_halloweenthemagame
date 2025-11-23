@@ -93,8 +93,11 @@ public class UIManager {
             g.drawString("공격력: " + ship.getAttackPower(), 20, 90);
             g.drawString("골드: " + ship.getMoney(), 20, 110);
         }
+        // 요새 HP는 우측 상단으로 이동하여 HUD 텍스트와 겹치지 않도록 함
         if (fortress != null) {
-            g.drawString("요새 HP: " + fortress.getHP(), 20, 130);
+            String fortHp = "요새 HP: " + fortress.getHP();
+            int fw = g.getFontMetrics().stringWidth(fortHp);
+            g.drawString(fortHp, 800 - fw - 20, 30);
         }
 
         // 오른쪽 상단에 보유 아이템 목록 표시
