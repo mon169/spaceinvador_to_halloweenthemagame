@@ -88,8 +88,8 @@ public class UIManager {
                 g.drawString("[ 보유 중인 특수 무기 ]", 20, y);
                 y += 26; // 조금 더 넉넉한 간격
             }
-            if (ship.hasBomb())  { g.drawString("• 폭탄 x" + ship.getBombCount() + " (B키)", 20, y); y += 24; }
-            if (ship.hasIceWeapon()) { g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount() + " (I키)", 20, y); y += 24; }
+            if (ship.hasBomb())  { g.drawString("• 폭탄 x" + ship.getBombCount() + " (A키)", 20, y); y += 24; }
+            if (ship.hasIceWeapon()) { g.drawString("• 얼음 공격 x" + ship.getIceWeaponCount() + " (E키)", 20, y); y += 24; }
             if (ship.hasShield()) { g.drawString("• 방어막 x" + ship.getShieldCount() + " (S키)", 20, y); }
         }
         // 요새 HP는 우측 상단으로 이동하여 HUD 텍스트와 겹치지 않도록 함
