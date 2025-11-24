@@ -24,14 +24,14 @@ public class InputManager extends KeyAdapter {
             case KeyEvent.VK_RIGHT: game.setRightPressed(true); break;
             case KeyEvent.VK_SPACE: game.setFirePressed(true);  break;
 
-            case KeyEvent.VK_B:
-                if (game.getShip() != null && game.getShip().hasBomb())
-                    game.getShip().useBomb();
-                break;
-            case KeyEvent.VK_I:
-                if (game.getShip() != null && game.getShip().hasIceWeapon())
-                    game.getShip().useIceWeapon();
-                break;
+                case KeyEvent.VK_A:
+                    if (game.getShip() != null && game.getShip().hasBomb())
+                        game.getShip().useBomb();
+                    break;
+                case KeyEvent.VK_E:
+                    if (game.getShip() != null && game.getShip().hasIceWeapon())
+                        game.getShip().useIceWeapon();
+                    break;
             case KeyEvent.VK_S:
                 if (game.getShip() != null && game.getShip().hasShield())
                     game.getShip().activateShield();
