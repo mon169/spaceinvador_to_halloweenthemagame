@@ -70,9 +70,9 @@ public class Boss5 extends MonsterEntity {
         spriteRight = SpriteStore.get().getSprite("sprites/vampirer.png");
         sprite = spriteRight;
 
-        batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
-        batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/bat1.png");
+        batSprites.add(SpriteStore.get().getSprite("sprites/bat.png"));
+        batSprites.add(SpriteStore.get().getSprite("sprites/bat.png"));
+        flashSprite = SpriteStore.get().getSprite("sprites/bat.png");
     }
 
     @Override
