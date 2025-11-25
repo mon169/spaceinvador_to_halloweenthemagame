@@ -17,6 +17,7 @@ import org.newdawn.spaceinvaders.entity.UserEntity2; // 🔥[ADDED] 2P 캐릭터
 import org.newdawn.spaceinvaders.entity.FortressEntity;
 import org.newdawn.spaceinvaders.entity.ShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
+import org.newdawn.spaceinvaders.entity.ShieldEntity;
 
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
@@ -68,6 +69,7 @@ public class Game extends Canvas {
     private StateManager stateManager;
     private InputManager inputManager;
     private UIManager uiManager;
+    private org.newdawn.spaceinvaders.manager.RewardManager rewardManager;
 
     // 🔥[ADDED] 소켓 네트워크 필드
     private GameClient client;              // 클라이언트 소켓
@@ -149,6 +151,7 @@ public class Game extends Canvas {
         stateManager = new StateManager(this, uiManager);
         stageManager = new StageManager(this, entityManager);
         inputManager = new InputManager(this);
+        rewardManager = new org.newdawn.spaceinvaders.manager.RewardManager();
         addKeyListener(inputManager);
 
         bg = SpriteStore.get().getSprite("bg/level1_background.jpg");
@@ -163,13 +166,8 @@ public class Game extends Canvas {
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
 
-        // 🔥[ADDED] 2P 엔티티(상대)도 미리 추가해두고, 네트워크로 좌표 동기화
-        try {
-            ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520); // 2P 전용 클래스 사용
-            entities.add(ship2);
-        } catch (Exception ignore) {
-            // 만약 리소스가 아직 없다면 생략해도 게임은 동작
-        }
+        // 🔥[ADDED] 2P 엔티티(상대)는 네트워크 연결 시에만 생성
+        // initSocket()이 호출된 후 networkConnected 상태를 확인하여 생성
 
         stageManager.loadStage(currentStage);
         stageManager.resetAllStageFlags(); // ✅ 보스/웨이브 리셋 호출
@@ -184,6 +182,14 @@ public class Game extends Canvas {
             client = new GameClient("localhost", 9999, this::onPacketReceived);
             networkConnected = true;
             System.out.println("✅ 소켓 연결 성공 — 2인 협동 활성화 (ID: " + playerId + ")");
+            
+            // 네트워크 연결 성공 시에만 2P 엔티티 생성
+            try {
+                ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
+                entities.add(ship2);
+            } catch (Exception ignore) {
+                // 만약 리소스가 아직 없다면 생략해도 게임은 동작
+            }
         } catch (IOException e) {
             System.out.println("⚠️ 소켓 서버 연결 실패 — 싱글 모드로 실행합니다.");
             networkConnected = false; // 🔥 추가
@@ -233,8 +239,10 @@ public class Game extends Canvas {
 
                 Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
 
-                // 배경
-                backgroundManager.draw(g, bg, 0);
+                // 배경 (시작 화면이 아닐 때만 게임 배경 그리기)
+                if (!waitingForKeyPress || shopOpen || (message != null && !message.isEmpty())) {
+                    backgroundManager.draw(g, bg, 0);
+                }
 
                 if (!waitingForKeyPress) {
                     stageManager.spawnWave(currentStage, stageStartTime);
@@ -243,11 +251,30 @@ public class Game extends Canvas {
                     entityManager.cleanupEntities();
                 }
 
-                // 엔티티 그리기 (복사본으로 순회하여 ConcurrentModification 예외 방지)
-                for (Entity e : new ArrayList<>(entities)) e.draw(g);
+                // 엔티티 그리기 (방어막은 마지막에 그려서 다른 엔티티가 위에 오도록)
+                // 복사본으로 순회하여 ConcurrentModification 예외 방지
+                List<Entity> entitiesCopy = new ArrayList<>(entities);
+                for (Entity e : entitiesCopy) {
+                    if (e instanceof ShieldEntity) {
+                        // 방어막은 나중에 그리기 위해 스킵
+                        continue;
+                    }
+                    e.draw(g);
+                }
+                // 방어막은 마지막에 그리기 (다른 엔티티 위에 표시되지만 투명도 조절)
+                for (Entity e : entitiesCopy) {
+                    if (e instanceof ShieldEntity) {
+                        e.draw(g);
+                    }
+                }
 
                 // UI
                 uiManager.drawFullUI(g, this, ship, fortress, entities, message, shopOpen, waitingForKeyPress);
+
+                // 보상 메시지 렌더링 (우상단 토스트)
+                if (rewardManager != null) {
+                    rewardManager.drawRewardMessages(g);
+                }
 
                 g.dispose();
                 strategy.show();
@@ -331,11 +358,13 @@ public class Game extends Canvas {
         fortress = new FortressEntity(this, "sprites/candybucket.png", 320, 460);
         entities.add(fortress);
 
-        // 🔥[ADDED] 재시작 시에도 2P 엔티티 추가
-        try {
-            ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
-            entities.add(ship2);
-        } catch (Exception ignore) {}
+        // 🔥[ADDED] 재시작 시에도 네트워크 연결되어 있으면 2P 엔티티 추가
+        if (networkConnected) {
+            try {
+                ship2 = new UserEntity2(this, "sprites/user2r.png", 420, 520);
+                entities.add(ship2);
+            } catch (Exception ignore) {}
+        }
 
         stageManager.loadStage(currentStage);
 
@@ -381,6 +410,11 @@ public class Game extends Canvas {
         alienCount--;
         if (alienCount < 0) alienCount = 0;
         System.out.println("💥 몬스터 처치됨 (남은 적: " + alienCount + ")");
+        
+        // 🎁 랜덤 보상 지급
+        if (rewardManager != null && ship != null) {
+            rewardManager.grantReward(ship);
+        }
     }
 
     public void notifyDeath() {
@@ -472,6 +506,19 @@ public class Game extends Canvas {
 
     public void removeEntity(Entity e) {
         if (!removeList.contains(e)) removeList.add(e);
+    }
+    
+    /** 활성화된 방어막이 있는지 확인 */
+    public boolean hasActiveShield() {
+        for (Entity e : entities) {
+            if (e instanceof ShieldEntity) {
+                ShieldEntity shield = (ShieldEntity) e;
+                if (shield.isActive()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public long getStageStartTime() { return stageStartTime; }
