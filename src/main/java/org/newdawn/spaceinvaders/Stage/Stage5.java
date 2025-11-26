@@ -66,6 +66,8 @@ public class Stage5 implements Stage {
             System.out.println("🧊 [Stage5] ICE 몬스터 생성");
         }
 
+
+        // 🔹 최종 보스 등장 (한 번만)
         if (elapsedSec >= 10 && !bossSpawned) {
             game.addEntity(new Boss5(game, 350, 120));
             bossSpawned = true;

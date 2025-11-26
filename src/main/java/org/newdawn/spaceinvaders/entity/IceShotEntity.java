@@ -10,7 +10,7 @@ import org.newdawn.spaceinvaders.Game;
 public class IceShotEntity extends Entity {
     private Game game;
     private double moveSpeed = -300;
-    private int freezeDuration = 3000; // 3초간 얼림
+    private int freezeDuration = 3000; 
     private static final int FREEZE_RADIUS = 150; // 폭탄(250)보다 작은 광역 범위
     private boolean used = false;
 

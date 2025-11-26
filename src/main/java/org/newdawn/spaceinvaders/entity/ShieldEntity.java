@@ -18,7 +18,8 @@ public class ShieldEntity extends Entity {
 
     public ShieldEntity(Game game, FortressEntity fortress, int duration) {
         // fortress의 중심 위치 기준으로 생성
-        super("sprites/barrier.png",
+        // super("sprites/shield.png", // NOTE: 주석에서 barrier.png, 코드에서 shield.png. 여기선 코드를 따름
+        super("sprites/shield.png", 
               fortress.getX() + fortress.getWidth() / 2 - 50,
               fortress.getY() + fortress.getHeight() / 2 - 50);
         
@@ -28,10 +29,11 @@ public class ShieldEntity extends Entity {
         this.active = true;
         
         // sprite 로드 확인
+        // NOTE: 주석과 달리 코드에서는 "shield.png"를 사용
         if (this.sprite == null) {
-            System.err.println("❌ ShieldEntity 생성 실패: barrier.png를 로드할 수 없습니다.");
+            System.err.println("❌ ShieldEntity 생성 실패: shield.png를 로드할 수 없습니다.");
         } else {
-            System.out.println("✅ ShieldEntity 생성 성공: barrier.png 로드됨, 지속시간=" + (duration / 1000) + "초");
+            System.out.println("✅ ShieldEntity 생성 성공: shield.png 로드됨, 지속시간=" + (duration / 1000) + "초");
         }
     }
 
@@ -39,7 +41,7 @@ public class ShieldEntity extends Entity {
     public void move(long delta) {
         // sprite가 null이면 처리하지 않음
         if (sprite == null) {
-            System.err.println("⚠️ ShieldEntity: sprite가 null입니다. barrier.png를 로드할 수 없습니다.");
+            System.err.println("⚠️ ShieldEntity: sprite가 null입니다. shield.png를 로드할 수 없습니다.");
             active = false;
             game.removeEntity(this);
             return;
@@ -62,7 +64,8 @@ public class ShieldEntity extends Entity {
         int fortressCenterX = fortress.getX() + fortressActualWidth / 2;
         int fortressCenterY = fortress.getY() + fortressActualHeight / 2;
         
-        // barrier.png가 candybucket.png보다 크게 보이도록 중심 맞춤
+        // shield.png가 candybucket.png보다 크게 보이도록 중심 맞춤
+        // NOTE: draw() 메서드에서 실제 그리기 위치가 재계산되므로, 여기서는 FortressEntity의 중심에 맞춥니다.
         this.x = fortressCenterX - sprite.getWidth() / 2;
         this.y = fortressCenterY - sprite.getHeight() / 2;
 
@@ -111,12 +114,18 @@ public class ShieldEntity extends Entity {
         // 충돌해도 방어막은 제거되지 않고 지속시간이 끝날 때까지 유지
         if (other instanceof EnemyShotEntity) {
             EnemyShotEntity shot = (EnemyShotEntity) other;
-            onBlocked(shot);               // 💫 효과용 콜백
-            shot.setBlockedByShield();     // 총알에 "막혔다" 표시
-            game.removeEntity(shot);       // 총알만 제거 (방어막은 유지)
+            onBlocked(shot); 			// 💫 효과용 콜백
+            shot.setBlockedByShield(); 	// 총알에 "막혔다" 표시
+            game.removeEntity(shot); 	// 총알만 제거 (방어막은 유지)
             System.out.println("🛡 방어막이 적 공격을 막았습니다! (방어막 유지)");
         }
-        // 🛡 몬스터와는 충돌하지 않으므로 제거 로직 없음
+        // 🛡 몬스터와 충돌 시 몬스터만 제거, 방어막은 유지
+        if (other instanceof MonsterEntity) {
+            MonsterEntity monster = (MonsterEntity) other;
+            onBlockedMonster(monster); 	// 💫 효과용 콜백
+            game.removeEntity(monster); 	// 몬스터만 제거 (방어막은 유지)
+            System.out.println("🛡 방어막이 몬스터 충돌을 막았습니다! (방어막 유지)");
+        }
     }
 
     /** 💥 총알이 방어막에 막혔을 때 호출되는 콜백 */
@@ -131,18 +140,13 @@ public class ShieldEntity extends Entity {
 
     @Override
     public void draw(java.awt.Graphics g) {
-        if (sprite == null) return;
+        if (fortress == null || sprite == null) return;
         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g;
 
-        // 💫 방어막 반투명 (투명도 50%) - 다른 엔티티가 보이도록
-        float alpha = 0.5f; // 50% 투명도
+        // 💡 투명도(AlphaComposite) 설정을 제거하여 원래 이미지대로 불투명하게 그립니다.
 
-        java.awt.AlphaComposite ac = java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, alpha);
-        g2.setComposite(ac);
-
-        // barrier.png를 candybucket.png보다 크게 표시
-        // candybucket은 0.65 scale이므로, barrier는 그것보다 크게 (약 0.225배)
-        double scale = 0.225;
+        // shield.png를 원래 크기로 표시 (크기 조정 제거)
+        double scale = 1.0; 
         int newW = (int) (sprite.getWidth() * scale);
         int newH = (int) (sprite.getHeight() * scale);
         java.awt.Image scaled = sprite.getImage().getScaledInstance(newW, newH, java.awt.Image.SCALE_SMOOTH);
@@ -156,9 +160,9 @@ public class ShieldEntity extends Entity {
         int drawX = fortressCenterX - newW / 2;
         int drawY = fortressCenterY - newH / 2;
         
+        // 불투명하게 그리기 (AlphaComposite 설정 제거)
         g2.drawImage(scaled, drawX, drawY, null);
 
-        g2.setComposite(java.awt.AlphaComposite.SrcOver);
     }
 
     public boolean isActive() {

@@ -70,10 +70,10 @@ public class Boss5 extends MonsterEntity {
         spriteRight = SpriteStore.get().getSprite("sprites/vampirer.png");
         sprite = spriteRight;
 
-        batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
-        batSprites.add(SpriteStore.get().getSprite("sprites/bat1.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/bat1.png");
-        
+        batSprites.add(SpriteStore.get().getSprite("sprites/bat.png"));
+        batSprites.add(SpriteStore.get().getSprite("sprites/bat.png"));
+        flashSprite = SpriteStore.get().getSprite("sprites/bat.png");
+
         // 보스 등장 시 배경 변경 (bossbg.jpg)
         game.setBackground("bg/bossbg.jpg");
     }
