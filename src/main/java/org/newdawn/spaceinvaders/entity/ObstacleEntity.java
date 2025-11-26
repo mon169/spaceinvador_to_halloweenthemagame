@@ -51,12 +51,21 @@ public class ObstacleEntity extends Entity {
      * 기본 생성자 - a, b, c 중 랜덤 선택
      */
     public ObstacleEntity(Game game, int x, int y) {
-        super("", x, y); // 임시 경로
+        // 빈 경로로 먼저 생성 (Entity 생성자가 빈 경로를 허용하도록 수정됨)
+        super("", x, y);
         this.game = game;
         this.stage = 1;
-        // 한 번만 랜덤 선택하여 같은 그룹 사용
+        // 랜덤 그룹 선택하여 frames 배열 저장
         this.frames = getRandomGroupFrames();
-        this.sprite = SpriteStore.get().getSprite(frames[0]); // 첫 번째 프레임으로 초기화
+        // 첫 번째 프레임으로 sprite 로드
+        this.sprite = SpriteStore.get().getSprite(frames[0]);
+        
+        // sprite 로드 확인
+        if (this.sprite == null) {
+            System.err.println("❌ ObstacleEntity 생성 실패: " + frames[0] + "를 로드할 수 없습니다.");
+        } else {
+            System.out.println("✅ ObstacleEntity 생성 성공: " + frames[0] + " 로드됨, 위치(" + x + "," + y + ")");
+        }
     }
     
     /**

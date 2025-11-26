@@ -70,6 +70,9 @@ public class Boss3 extends MonsterEntity {
         sprite = spriteRight;
 
     // bandageSprites and flashSprite previously used a 'bug' visual; removed per design choice
+
+    // 보스 등장 시 배경 변경 (desert.JPG)
+    game.setBackground("bg/desert.JPG");
     }
 
     @Override

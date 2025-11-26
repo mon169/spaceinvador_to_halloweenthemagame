@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.Boss.BossEntity;
 
 /**
  * 🛡 요새 방어막 엔티티 (ShieldEntity)
@@ -74,6 +75,37 @@ public class ShieldEntity extends Entity {
             game.removeEntity(this);
             System.out.println("⏱ 방어막 지속시간 종료 - 자동 제거");
         }
+    }
+
+    @Override
+    public boolean collidesWith(Entity other) {
+        // 🛡 방어막은 총알만 감지하고, 몬스터/보스와는 충돌하지 않음 (히트박스 축소)
+        if (other instanceof MonsterEntity || other instanceof BossEntity) {
+            return false; // 몬스터/보스와는 충돌하지 않음
+        }
+        // 총알만 충돌 감지 (히트박스 크기 축소)
+        if (other instanceof EnemyShotEntity) {
+            // 요새 주변 작은 영역만 충돌 감지
+            int marginX = sprite.getWidth() / 3; // 히트박스 크기를 1/3로 축소
+            int marginY = sprite.getHeight() / 3;
+            
+            java.awt.Rectangle me = new java.awt.Rectangle(
+                (int) x + marginX,
+                (int) y + marginY,
+                sprite.getWidth() - marginX * 2,
+                sprite.getHeight() - marginY * 2
+            );
+            
+            java.awt.Rectangle him = new java.awt.Rectangle(
+                (int) other.x,
+                (int) other.y,
+                other.sprite.getWidth(),
+                other.sprite.getHeight()
+            );
+            
+            return me.intersects(him);
+        }
+        return super.collidesWith(other);
     }
 
     @Override

@@ -3,22 +3,46 @@ package org.newdawn.spaceinvaders.sound;
 import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 public class SoundEffect {
     private Clip clip;                 // 기본 속도용
     private Clip variantClip;          // 가속/감속용(필요할 때 새로 연다)
-    private final String filePath;     // 원본 파일 경로(재열기용)
+    private final String resourcePath; // 클래스패스 리소스 경로(재열기용)
 
-    public SoundEffect(String filePath) {
-        this.filePath = filePath;
+    public SoundEffect(String resourcePath) {
+        this.resourcePath = resourcePath;
         try {
             clip = AudioSystem.getClip();
-            AudioInputStream in = AudioSystem.getAudioInputStream(new File(filePath));
-            AudioInputStream pcm = toPcmSigned(in); // (mp3는 불가, wav/pcm 가정)
+            AudioInputStream in = loadAudioStream(resourcePath);
+            AudioInputStream pcm = toPcmSigned(in);
             clip.open(pcm);
         } catch (Exception e) {
+            System.err.println("⚠️ 사운드 로드 실패: " + resourcePath);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 클래스패스 리소스 또는 파일 경로에서 오디오 스트림 로드
+     */
+    private AudioInputStream loadAudioStream(String path) throws Exception {
+        // 클래스패스 리소스로 먼저 시도 (/sounds/...)
+        InputStream is = getClass().getResourceAsStream(path);
+        if (is != null) {
+            return AudioSystem.getAudioInputStream(is);
+        }
+        // 파일 경로로 폴백 (개발 환경용)
+        File file = new File(path);
+        if (file.exists()) {
+            return AudioSystem.getAudioInputStream(file);
+        }
+        // src/main/resources 경로로도 시도
+        file = new File("src/main/resources" + path);
+        if (file.exists()) {
+            return AudioSystem.getAudioInputStream(file);
+        }
+        throw new IOException("사운드 파일을 찾을 수 없습니다: " + path);
     }
 
     // 기본 API 그대로 유지
@@ -63,7 +87,7 @@ public class SoundEffect {
                 variantClip = null;
             }
             // 원본 스트림 다시 열기
-            AudioInputStream in = AudioSystem.getAudioInputStream(new File(filePath));
+            AudioInputStream in = loadAudioStream(resourcePath);
             AudioInputStream pcm = toPcmSigned(in);
 
             AudioFormat src = pcm.getFormat();
