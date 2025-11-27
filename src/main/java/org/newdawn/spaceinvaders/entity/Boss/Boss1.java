@@ -74,6 +74,9 @@ public class Boss1 extends MonsterEntity {
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         flashSprite = SpriteStore.get().getSprite("sprites/lightning1.png");
+        
+        // 보스 등장 시 배경 변경 (zombiebg.jpg)
+        game.setBackground("bg/zombiebg.jpg");
     }
 
     @Override

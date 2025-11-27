@@ -2,7 +2,10 @@ package org.newdawn.spaceinvaders;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import org.newdawn.spaceinvaders.sound.SoundManager;
 
 /**
  * 🎬 StartScreen — 게임 시작 전 UI
@@ -21,6 +24,25 @@ public class StartScreen extends JFrame {
         setResizable(false);
         setLocationRelativeTo(null);
         setLayout(null);
+
+        // ✅ 사운드 초기화 및 start_bgm 재생
+        try {
+            Class.forName("org.newdawn.spaceinvaders.sound.SoundManager");
+            SoundManager.stopGameBgm(); // 게임 BGM이 재생 중이면 중지
+            SoundManager.playStartBgmLoop(); // 로비 BGM 재생
+        } catch (Exception e) {
+            System.err.println("⚠️ SoundManager 초기화 실패: " + e.getMessage());
+        }
+
+        // ✅ 키 입력 리스너 추가 (어떤 키든 눌리면 click.wav 재생)
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                SoundManager.playClick();
+            }
+        });
+        setFocusable(true);
+        requestFocus();
 
         // ✅ 배경 이미지 로드 (없으면 기본 배경)
         try {
@@ -52,6 +74,8 @@ public class StartScreen extends JFrame {
 
         // ✅ 시작 버튼 동작
         startButton.addActionListener(e -> {
+            SoundManager.playClick(); // 클릭 사운드
+            SoundManager.stopStartBgm(); // 로비 BGM 중지
             dispose(); // 현재 창 닫기
             SwingUtilities.invokeLater(() -> {
                 Game game = new Game();
@@ -59,10 +83,11 @@ public class StartScreen extends JFrame {
             });
         });
 
-        // ✅ 설정 버튼 동작s
-        settingsButton.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "⚙️ 환경설정은 준비 중입니다!", "Info", JOptionPane.INFORMATION_MESSAGE)
-        );
+        // ✅ 설정 버튼 동작
+        settingsButton.addActionListener(e -> {
+            SoundManager.playClick(); // 클릭 사운드
+            JOptionPane.showMessageDialog(this, "⚙️ 환경설정은 준비 중입니다!", "Info", JOptionPane.INFORMATION_MESSAGE);
+        });
 
         // ✅ 배경 패널
         JPanel bgPanel = new JPanel() {

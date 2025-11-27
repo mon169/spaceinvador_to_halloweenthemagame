@@ -76,6 +76,14 @@ public class Boss3 extends MonsterEntity {
         spriteLeft  = SpriteStore.get().getSprite("sprites/mummyl.png");
         spriteRight = SpriteStore.get().getSprite("sprites/mummyr.png");
         sprite = spriteRight;
+<<<<<<< HEAD
+=======
+
+    // bandageSprites and flashSprite previously used a 'bug' visual; removed per design choice
+
+    // 보스 등장 시 배경 변경 (desert.JPG)
+    game.setBackground("bg/desert.JPG");
+>>>>>>> 3f9f77e62169496e4354c9c71d4dd192d14a403b
     }
 
     /* ===========================================================
