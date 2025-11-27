@@ -82,13 +82,9 @@ public class Boss4 extends MonsterEntity {
         limbSprites.add(SpriteStore.get().getSprite("sprites/arm1.png"));
         limbSprites.add(SpriteStore.get().getSprite("sprites/leg1.png"));
         limbSprites.add(SpriteStore.get().getSprite("sprites/heart1.png"));
-<<<<<<< HEAD
-=======
-        flashSprite = SpriteStore.get().getSprite("sprites/blood_flash.png");
         
         // 보스 등장 시 배경 변경 (zombiebg.jpg)
         game.setBackground("bg/zombiebg.jpg");
->>>>>>> 3f9f77e62169496e4354c9c71d4dd192d14a403b
     }
 
     /* ==================================================
