@@ -35,7 +35,7 @@ public class SpriteStore {
 	}
 	
 	/** The cached sprite map, from reference to sprite instance */
-	private HashMap sprites = new HashMap();
+	private HashMap<String, Sprite> sprites = new HashMap<>();
 	
 	/**
 	 * Retrieve a sprite from the store
@@ -47,7 +47,7 @@ public class SpriteStore {
 		// if we've already got the sprite in the cache
 		// then just return the existing version
 		if (sprites.get(ref) != null) {
-			return (Sprite) sprites.get(ref);
+			return sprites.get(ref);
 		}
 		
 		// otherwise, go away and grab the sprite from the resource
@@ -67,6 +67,11 @@ public class SpriteStore {
 			
 			// use ImageIO to read the image in
 			sourceImage = ImageIO.read(url);
+			
+			// verify the image was loaded successfully
+			if (sourceImage == null) {
+				fail("Failed to read image: "+ref);
+			}
 		} catch (IOException e) {
 			fail("Failed to load: "+ref);
 		}

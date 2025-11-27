@@ -2,7 +2,6 @@ package org.newdawn.spaceinvaders.manager;
 
 import java.awt.*;
 import java.util.List;
-import javax.swing.*;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
@@ -116,7 +115,7 @@ public class UIManager {
         g.setFont(titleFont);
         String shopTitle = "SHOP";
         int titleWidth = g.getFontMetrics().stringWidth(shopTitle);
-        g.drawString(shopTitle, (800 - titleWidth) / 2, 60);
+        g.drawString(shopTitle, getCenterX(titleWidth), 60);
 
         g.setFont(smallFont);
         g.drawString("현재 보유 금액: " + ship.getMoney() + " 골드", 330, 90);
@@ -145,14 +144,13 @@ public class UIManager {
         g.setColor(Color.yellow);
         int nextStage = game.getCurrentStage() + 1;
         String nextStageInfo = "다음 스테이지 " + nextStage + " 특성: " + stageDesc(nextStage);
-        g.drawString(nextStageInfo, (800 - g.getFontMetrics().stringWidth(nextStageInfo)) / 2, 480);
+        g.drawString(nextStageInfo, getCenterX(g.getFontMetrics().stringWidth(nextStageInfo)), 480);
 
         // 하단 조작법
         g.setColor(Color.white);
         int bottomY = 540;
-        g.drawString("[ 조작 방법 ]  숫자키(1-" + items.size() + "): 아이템 구매   |   R: 다음 스테이지   |   ESC: 종료",
-                (800 - g.getFontMetrics().stringWidth("[ 조작 방법 ]  숫자키(1-" + items.size() + "): 아이템 구매   |   R: 다음 스테이지   |   ESC: 종료")) / 2,
-                bottomY);
+        String controlText = "[ 조작 방법 ]  숫자키(1-" + items.size() + "): 아이템 구매   |   R: 다음 스테이지   |   ESC: 종료";
+        g.drawString(controlText, getCenterX(g.getFontMetrics().stringWidth(controlText)), bottomY);
     }
 
     private void drawMessageOverlay(Graphics2D g, String message) {
@@ -165,7 +163,7 @@ public class UIManager {
         int y = 260;
         for (String line : lines) {
             int w = g.getFontMetrics().stringWidth(line);
-            g.drawString(line, (800 - w) / 2, y);
+            g.drawString(line, getCenterX(w), y);
             y += 40;
         }
     }
@@ -188,14 +186,14 @@ public class UIManager {
             double scale = 0.7;
             int dw = (int) Math.round(bw * scale);
             int dh = (int) Math.round(bh * scale);
-            int btnX = (800 - dw) / 2; // 중앙 정렬
+            int btnX = getCenterX(dw); // 중앙 정렬
             int btnY = (600 - dh) / 2 + 100; // 중앙에서 더 아래
             startBtn.drawScaled(g, btnX, btnY, dw, dh);
         }
 
         g.setFont(smallFont);
         String controls = "Controls: ← → 이동, SPACE 발사  |  아무 키나 눌러 시작";
-        g.drawString(controls, (800 - g.getFontMetrics().stringWidth(controls)) / 2, 500);
+        g.drawString(controls, getCenterX(g.getFontMetrics().stringWidth(controls)), 500);
     }
 
     private String stageDesc(int stage) {
@@ -207,5 +205,14 @@ public class UIManager {
             case 5: return "이중 장애물 등장";
             default: return "—";
         }
+    }
+
+    /**
+     * Calculate X coordinate for center alignment
+     * @param width Width of the element to center
+     * @return X coordinate for center position
+     */
+    private int getCenterX(int width) {
+        return (800 - width) / 2;
     }
 }

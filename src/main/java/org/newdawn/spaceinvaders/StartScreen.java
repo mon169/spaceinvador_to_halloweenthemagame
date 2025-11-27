@@ -16,6 +16,7 @@ public class StartScreen extends JFrame {
     private Image backgroundImage;
     private JButton startButton;
     private JButton settingsButton;
+    private float brightnessOverlay = 1.0f; // 0.0 (어두움) ~ 1.0 (밝음)
 
     public StartScreen() {
         setTitle("🎃 Halloween Space Invaders");
@@ -86,7 +87,8 @@ public class StartScreen extends JFrame {
         // ✅ 설정 버튼 동작
         settingsButton.addActionListener(e -> {
             SoundManager.playClick(); // 클릭 사운드
-            JOptionPane.showMessageDialog(this, "⚙️ 환경설정은 준비 중입니다!", "Info", JOptionPane.INFORMATION_MESSAGE);
+            SettingsDialog dialog = new SettingsDialog(this);
+            dialog.setVisible(true);
         });
 
         // ✅ 배경 패널
@@ -95,6 +97,14 @@ public class StartScreen extends JFrame {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+                
+                // 밝기 오버레이 적용
+                if (brightnessOverlay < 1.0f) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int alpha = (int)((1.0f - brightnessOverlay) * 255);
+                    g2d.setColor(new Color(0, 0, 0, alpha));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
             }
         };
         bgPanel.setBounds(0, 0, 800, 600);
@@ -118,6 +128,15 @@ public class StartScreen extends JFrame {
             System.err.println("⚠️ " + name + " 이미지 로드 실패: " + path);
             return new ImageIcon();
         }
+    }
+
+    /**
+     * 설정 다이얼로그에서 호출: 밝기 조절
+     * @param brightness 0~100 (100 = 원본)
+     */
+    public void applyBrightness(int brightness) {
+        this.brightnessOverlay = brightness / 100.0f;
+        repaint(); // 화면 갱신
     }
 
     public static void main(String[] args) {
