@@ -76,7 +76,7 @@ public class RewardManager {
         rewardLog.add(new RewardMsg(text, untilMs));
 
         // 최대 개수 초과 시 오래된 것부터 제거
-        while (rewardLog.size() > MAX_REWARD_LOG) {
+        if (rewardLog.size() > MAX_REWARD_LOG) {
             rewardLog.remove(0);
         }
     }

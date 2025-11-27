@@ -51,21 +51,8 @@ public class ObstacleEntity extends Entity {
      * 기본 생성자 - a, b, c 중 랜덤 선택
      */
     public ObstacleEntity(Game game, int x, int y) {
-        // 빈 경로로 먼저 생성 (Entity 생성자가 빈 경로를 허용하도록 수정됨)
         super("", x, y);
-        this.game = game;
-        this.stage = 1;
-        // 랜덤 그룹 선택하여 frames 배열 저장
-        this.frames = getRandomGroupFrames();
-        // 첫 번째 프레임으로 sprite 로드
-        this.sprite = SpriteStore.get().getSprite(frames[0]);
-        
-        // sprite 로드 확인
-        if (this.sprite == null) {
-            System.err.println("❌ ObstacleEntity 생성 실패: " + frames[0] + "를 로드할 수 없습니다.");
-        } else {
-            System.out.println("✅ ObstacleEntity 생성 성공: " + frames[0] + " 로드됨, 위치(" + x + "," + y + ")");
-        }
+        initializeObstacle(game, getRandomGroupFrames());
     }
     
     /**
@@ -73,10 +60,25 @@ public class ObstacleEntity extends Entity {
      * group이 null이거나 유효하지 않으면 랜덤 선택
      */
     public ObstacleEntity(Game game, int x, int y, String group) {
-        super(selectGroupFrames(group)[0], x, y);
+        super("", x, y);
+        initializeObstacle(game, selectGroupFrames(group));
+    }
+    
+    /**
+     * 장애물 초기화 (공통 로직)
+     */
+    private void initializeObstacle(Game game, String[] frames) {
         this.game = game;
         this.stage = 1;
-        this.frames = selectGroupFrames(group);
+        this.frames = frames;
+        this.sprite = SpriteStore.get().getSprite(frames[0]);
+        
+        // sprite 로드 확인
+        if (this.sprite == null) {
+            System.err.println("❌ ObstacleEntity 생성 실패: " + frames[0] + "를 로드할 수 없습니다.");
+        } else {
+            System.out.println("✅ ObstacleEntity 생성 성공: " + frames[0] + " 로드됨");
+        }
     }
     
     /**
@@ -109,28 +111,31 @@ public class ObstacleEntity extends Entity {
         // 플레이어의 총알에 맞으면 단계 변경
         if (other instanceof ShotEntity) {
             hitCount++;
-            if (hitCount >= hitToNextStage[stage-1]) {
+            if (hitCount >= hitToNextStage[getFrameIndex()]) {
                 hitCount = 0;
                 stage++;
                 if (stage > 4) {
                     game.removeEntity(this); // 장애물 제거
                 } else {
-                    this.sprite = SpriteStore.get().getSprite(frames[stage-1]);
+                    this.sprite = SpriteStore.get().getSprite(frames[getFrameIndex()]);
                 }
             }
             game.removeEntity(other); // 총알 제거
         }
         // EnemyShotEntity는 무시 (피해 없음)
     }
+    
+    /**
+     * 현재 stage에 대응하는 프레임 인덱스 반환
+     */
+    private int getFrameIndex() {
+        return stage - 1;
+    }
 
     // 장애물 모두 제거 여부 확인
     // Game에서 호출하는 용도
     public static boolean isObstacleClear(List<Entity> entities) {
-        for (Entity entity : entities) {
-            if (entity instanceof ObstacleEntity) {
-                return false;
-            }
-        }
-        return true;
+        return entities.stream()
+                .noneMatch(entity -> entity instanceof ObstacleEntity);
     }
 }

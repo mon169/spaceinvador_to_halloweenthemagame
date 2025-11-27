@@ -74,6 +74,19 @@
                     <mainClass>network.GameServer</mainClass>
                 </configuration>
             </plugin>
+            
+            <!-- SpotBugs 플러그인 -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.3.1</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <failOnError>false</failOnError>
+                    <xmlOutput>true</xmlOutput>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
