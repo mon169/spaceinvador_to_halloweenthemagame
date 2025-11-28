@@ -11,16 +11,39 @@ import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.shop.Item;
 
 /**
- * 🎮 ShipEntity - 플레이어 캐릭터
+ * ShipEntity - 플레이어 캐릭터
  * 좌우 이동 시 스프라이트 전환, 축소 렌더링
  */
 public class UserEntity extends Entity {
+
+    // =====================================================
+    // Constants
+    // =====================================================
+    private static final int DEFAULT_MAX_HEALTH = 2000;
+    private static final int DEFAULT_ATTACK_POWER = 15;
+    private static final double DEFAULT_MOVE_SPEED = 300;
+    private static final long DEFAULT_FIRING_INTERVAL = 500;
+    
+    private static final int BOUNDARY_LEFT = 10;
+    private static final int BOUNDARY_RIGHT = 750;
+    
+    private static final int MIN_DAMAGE = 1;
+    private static final double DRAW_SCALE = 0.13;
+    private static final double SIZE_SCALE = 0.5;
+    
+    private static final int BOMB_Y_OFFSET = 30;
+    private static final int SHIELD_DURATION = 5000;
+    private static final int MILLIS_TO_SECONDS = 1000;
+
+    // =====================================================
+    // Fields
+    // =====================================================
     private final Game game;
 
-    private int maxHealth = 2000;
+    private int maxHealth = DEFAULT_MAX_HEALTH;
     private int currentHealth;
     private int defense = 0;
-    private int attackPower = 15;
+    private int attackPower = DEFAULT_ATTACK_POWER;
     private boolean isFrozen = false;
     private long frozenEndTime = 0;
 
@@ -28,8 +51,8 @@ public class UserEntity extends Entity {
     private int iceWeaponCount = 0;
     private int shieldCount = 0;
 
-    private double moveSpeed = 300;
-    private long firingInterval = 500;
+    private double moveSpeed = DEFAULT_MOVE_SPEED;
+    private long firingInterval = DEFAULT_FIRING_INTERVAL;
 
     private boolean canAttack = true;
     private int money = 0;
@@ -61,18 +84,13 @@ public class UserEntity extends Entity {
         }
     }
 
-    // =====================================================
-    // 🔹 축소 렌더링
-    // =====================================================
     @Override
     public void draw(Graphics g) {
         if (sprite == null) return;
         Graphics2D g2 = (Graphics2D) g;
 
-        // NOTE: 원본 코드에서 0.13로 쓰던 비율 유지
-        double scale = 0.13;
-        int newW = (int) (sprite.getWidth() * scale);
-        int newH = (int) (sprite.getHeight() * scale);
+        int newW = (int) (sprite.getWidth() * DRAW_SCALE);
+        int newH = (int) (sprite.getHeight() * DRAW_SCALE);
 
         Image scaled = sprite.getImage().getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
         g2.drawImage(scaled, (int) x, (int) y, null);
@@ -87,12 +105,11 @@ public class UserEntity extends Entity {
     }
 
     public void takeDamage(int damage) {
-        // 🛡 방어막이 활성화되어 있으면 피해 무시 (무적)
         if (game.hasActiveShield()) {
             return;
         }
         
-        int actualDamage = Math.max(1, damage - defense);
+        int actualDamage = Math.max(MIN_DAMAGE, damage - defense);
         currentHealth -= actualDamage;
         if (currentHealth <= 0) game.notifyDeath();
     }
@@ -119,15 +136,13 @@ public class UserEntity extends Entity {
         }
     }
 
-    // 이동 제어
     @Override
     public void move(long delta) {
         checkFrozenStatus();
         if (isFrozen) return;
 
-        // 경계 체크
-        if ((dx < 0) && (x < 10)) return;
-        if ((dx > 0) && (x > 750)) return;
+        if ((dx < 0) && (x < BOUNDARY_LEFT)) return;
+        if ((dx > 0) && (x > BOUNDARY_RIGHT)) return;
 
         super.move(delta);
     }
@@ -141,7 +156,7 @@ public class UserEntity extends Entity {
     }
 
     // =====================================================
-    // 🔹 아이템/상점 연동
+    // 아이템/상점 연동
     // =====================================================
     public void addItem(Item item) {
         this.inventory.add(item);
@@ -160,8 +175,7 @@ public class UserEntity extends Entity {
     public int getMoney()              { return money; }
 
     // =====================================================
-    // 🔹 무기 및 특수 기능
-    //   (Game.itemsAllowed() 의존 제거 → 항상 사용 가능)
+    // 무기 및 특수 기능
     // =====================================================
     public void giveBomb()      { this.bombCount++; }
     public void giveIceWeapon() { this.iceWeaponCount++; }
@@ -178,7 +192,7 @@ public class UserEntity extends Entity {
     public void useBomb() {
         if (bombCount > 0) {
             System.out.println("💣 useBomb 호출 — 폭탄 발사 시도 (남은: " + bombCount + ")");
-            game.addEntity(new org.newdawn.spaceinvaders.entity.BombShotEntity(game, "sprites/bombshot.png", (int) x, (int) y - 30));
+            game.addEntity(new org.newdawn.spaceinvaders.entity.BombShotEntity(game, "sprites/bombshot.png", (int) x, (int) y - BOMB_Y_OFFSET));
             bombCount--;
             System.out.println("💣 폭탄 생성 완료 — 남은 폭탄: " + bombCount);
         }
@@ -193,16 +207,14 @@ public class UserEntity extends Entity {
 
     public void activateShield() {
         if (shieldCount > 0 && game.getFortress() != null) {
-            // 지속시간은 항상 5초로 고정 (무적 시간)
-            int duration = 5000;
-            game.addEntity(new ShieldEntity(game, game.getFortress(), duration));
+            game.addEntity(new ShieldEntity(game, game.getFortress(), SHIELD_DURATION));
             shieldCount--;
-            System.out.println("방어막 활성화 (" + duration / 1000 + "초)");
+            System.out.println("방어막 활성화 (" + SHIELD_DURATION / MILLIS_TO_SECONDS + "초)");
         }
     }
 
     // =====================================================
-    // 🔹 상태 복사 (copyStateFrom)
+    // 상태 복사 (copyStateFrom)
     // =====================================================
     public void copyStateFrom(UserEntity other) {
         this.maxHealth      = other.maxHealth;
@@ -228,11 +240,11 @@ public class UserEntity extends Entity {
     public void setCanAttack(boolean canAttack) { this.canAttack = canAttack; }
     public boolean canAttack() { return canAttack; }
 
-    public int getWidth()  { return (int) (sprite.getWidth()  * 0.5); }
-    public int getHeight() { return (int) (sprite.getHeight() * 0.5); }
+    public int getWidth()  { return (int) (sprite.getWidth()  * SIZE_SCALE); }
+    public int getHeight() { return (int) (sprite.getHeight() * SIZE_SCALE); }
 
     // =====================================================
-    // 🔹 Game.java와 연동용 Getter / Setter (네트워크용)
+    // Game.java와 연동용 Getter / Setter (네트워크용)
     // =====================================================
     public void setX(int x) { this.x = x; }
     public void setY(int y) { this.y = y; }
