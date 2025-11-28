@@ -19,7 +19,7 @@ public class Boss3 extends MonsterEntity {
        =========================================================== */
     private final Game game;
 
-    private int health = 10;
+    private int health = 1000;
     private boolean enraged = false;
 
     /* ===========================================================

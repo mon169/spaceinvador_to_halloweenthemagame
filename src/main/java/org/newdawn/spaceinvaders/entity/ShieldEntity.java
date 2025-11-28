@@ -2,6 +2,7 @@ package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.Boss.BossEntity;
+import org.newdawn.spaceinvaders.entity.Boss.Boss1;
 
 /**
  * 🛡 요새 방어막 엔티티 (ShieldEntity)
@@ -18,7 +19,6 @@ public class ShieldEntity extends Entity {
 
     public ShieldEntity(Game game, FortressEntity fortress, int duration) {
         // fortress의 중심 위치 기준으로 생성
-        // super("sprites/shield.png", // NOTE: 주석에서 barrier.png, 코드에서 shield.png. 여기선 코드를 따름
         super("sprites/shield.png", 
               fortress.getX() + fortress.getWidth() / 2 - 50,
               fortress.getY() + fortress.getHeight() / 2 - 50);
@@ -29,7 +29,6 @@ public class ShieldEntity extends Entity {
         this.active = true;
         
         // sprite 로드 확인
-        // NOTE: 주석과 달리 코드에서는 "shield.png"를 사용
         if (this.sprite == null) {
             System.err.println("❌ ShieldEntity 생성 실패: shield.png를 로드할 수 없습니다.");
         } else {
@@ -57,15 +56,11 @@ public class ShieldEntity extends Entity {
         
         // 🚀 fortress 위치 따라다니기
         // FortressEntity는 scale 0.65로 그려지므로 실제 표시 크기 계산
-        double fortressScale = 0.65;
-        int fortressActualWidth = (int)(fortress.getWidth() * fortressScale);
-        int fortressActualHeight = (int)(fortress.getHeight() * fortressScale);
-        
-        int fortressCenterX = fortress.getX() + fortressActualWidth / 2;
-        int fortressCenterY = fortress.getY() + fortressActualHeight / 2;
+        int[] center = getFortressCenter();
+        int fortressCenterX = center[0];
+        int fortressCenterY = center[1];
         
         // shield.png가 candybucket.png보다 크게 보이도록 중심 맞춤
-        // NOTE: draw() 메서드에서 실제 그리기 위치가 재계산되므로, 여기서는 FortressEntity의 중심에 맞춥니다.
         this.x = fortressCenterX - sprite.getWidth() / 2;
         this.y = fortressCenterY - sprite.getHeight() / 2;
 
@@ -119,8 +114,8 @@ public class ShieldEntity extends Entity {
             game.removeEntity(shot); 	// 총알만 제거 (방어막은 유지)
             System.out.println("🛡 방어막이 적 공격을 막았습니다! (방어막 유지)");
         }
-        // 🛡 몬스터와 충돌 시 몬스터만 제거, 방어막은 유지
-        if (other instanceof MonsterEntity) {
+        // 🛡 몬스터와 충돌 시 몬스터만 제거, 방어막은 유지 (보스는 제외)
+        if (other instanceof MonsterEntity && !(other instanceof org.newdawn.spaceinvaders.entity.Boss.Boss1)) {
             MonsterEntity monster = (MonsterEntity) other;
             onBlockedMonster(monster); 	// 💫 효과용 콜백
             game.removeEntity(monster); 	// 몬스터만 제거 (방어막은 유지)
@@ -152,11 +147,9 @@ public class ShieldEntity extends Entity {
         java.awt.Image scaled = sprite.getImage().getScaledInstance(newW, newH, java.awt.Image.SCALE_SMOOTH);
         
         // 요새 중심에 맞춰 그리기
-        double fortressScale = 0.65;
-        int fortressActualWidth = (int)(fortress.getWidth() * fortressScale);
-        int fortressActualHeight = (int)(fortress.getHeight() * fortressScale);
-        int fortressCenterX = fortress.getX() + fortressActualWidth / 2;
-        int fortressCenterY = fortress.getY() + fortressActualHeight / 2;
+        int[] center = getFortressCenter();
+        int fortressCenterX = center[0];
+        int fortressCenterY = center[1];
         int drawX = fortressCenterX - newW / 2;
         int drawY = fortressCenterY - newH / 2;
         
@@ -171,5 +164,18 @@ public class ShieldEntity extends Entity {
     
     public long getEndTime() {
         return endTime;
+    }
+    
+    /**
+     * Calculate fortress center coordinates
+     * @return int array [centerX, centerY]
+     */
+    private int[] getFortressCenter() {
+        double fortressScale = 0.65;
+        int fortressActualWidth = (int)(fortress.getWidth() * fortressScale);
+        int fortressActualHeight = (int)(fortress.getHeight() * fortressScale);
+        int fortressCenterX = fortress.getX() + fortressActualWidth / 2;
+        int fortressCenterY = fortress.getY() + fortressActualHeight / 2;
+        return new int[]{fortressCenterX, fortressCenterY};
     }
 }

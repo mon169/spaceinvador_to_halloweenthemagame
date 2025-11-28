@@ -7,6 +7,39 @@ import java.util.Random;
 public class MonsterEntity extends Entity {
 
     // =====================================================
+    // Constants
+    // =====================================================
+    private static final int BOUNDARY_LEFT = 10;
+    private static final int BOUNDARY_RIGHT = 760;
+    private static final int BOUNDARY_TOP = 40;
+    private static final int BOUNDARY_BOTTOM = 520;
+    
+    private static final int STAGE1_SPEED = 40;
+    private static final int STAGE2_SPEED = 60;
+    private static final int STAGE3_SPEED = 80;
+    private static final int STAGE4_SPEED = 100;
+    
+    private static final int DIRECTION_CHANGE_BASE = 1000;
+    private static final int DIRECTION_CHANGE_RANGE = 2000;
+    
+    private static final int ATTACK_BASE_DELAY = 1500;
+    private static final int ATTACK_RANGE_DELAY = 2000;
+    private static final int INITIAL_ATTACK_DELAY = 2000;
+    private static final double ATTACK_PROBABILITY = 0.6;
+    
+    private static final int FORTRESS_CENTER_OFFSET = 40;
+    
+    private static final int ICESHOT_SPEED = 200;
+    private static final int BOMBSHOT_SPEED = 250;
+    private static final int NORMAL_SHOT_SPEED = 180;
+    
+    private static final double DRAW_SCALE = 0.5;
+    private static final int COLLISION_DAMAGE = 10;
+    
+    private static final int STAGE_WITH_OBSTACLES = 4;
+    private static final int STAGE_WITH_OBSTACLES_2 = 5;
+
+    // =====================================================
     // Fields
     // =====================================================
     protected final Game game;
@@ -21,7 +54,7 @@ public class MonsterEntity extends Entity {
     private boolean movingRight = random.nextBoolean();
     private boolean movingDown = random.nextBoolean();
     private long lastMoveChange = 0;
-    private long moveChangeDelay = randomDelay(1000, 2000);
+    private long moveChangeDelay = randomDelay(DIRECTION_CHANGE_BASE, DIRECTION_CHANGE_RANGE);
 
     private long lastFrameChange = 0;
     private static final int FRAME_DELAY = 120;
@@ -51,8 +84,7 @@ public class MonsterEntity extends Entity {
         this.game = game;
         initMonsterCommon();
         this.currentSpriteBase = spritePath;
-        dx = movingRight ? moveSpeed : -moveSpeed;
-        dy = movingDown ? moveSpeed : -moveSpeed;
+        updateVelocityFromDirection();
     }
 
     // =====================================================
@@ -60,8 +92,8 @@ public class MonsterEntity extends Entity {
     // =====================================================
     private void initMonsterCommon() {
         setSpeedByStage();
-        lastAttackTime = System.currentTimeMillis() + random.nextInt(2000);
-        attackDelay = randomDelay(1500, 2000);
+        lastAttackTime = System.currentTimeMillis() + random.nextInt(INITIAL_ATTACK_DELAY);
+        attackDelay = randomDelay(ATTACK_BASE_DELAY, ATTACK_RANGE_DELAY);
     }
 
     private void initRandomSprite() {
@@ -71,8 +103,7 @@ public class MonsterEntity extends Entity {
     }
 
     private void initRandomMovement() {
-        dx = movingRight ? moveSpeed : -moveSpeed;
-        dy = movingDown ? moveSpeed : -moveSpeed;
+        updateVelocityFromDirection();
     }
 
     private void setSpeedByStage() {
@@ -82,9 +113,9 @@ public class MonsterEntity extends Entity {
         } catch (Exception ignored) {}
 
         this.moveSpeed =
-                (stage == 1) ? 40 :
-                (stage == 2) ? 60 :
-                (stage == 3) ? 80 : 100;
+                (stage == 1) ? STAGE1_SPEED :
+                (stage == 2) ? STAGE2_SPEED :
+                (stage == 3) ? STAGE3_SPEED : STAGE4_SPEED;
     }
 
     private static int randomDelay(int base, int range) {
@@ -114,16 +145,24 @@ public class MonsterEntity extends Entity {
     private void updateFreeze(long now) {
         if (frozen && now > freezeEndTime) {
             frozen = false;
-            dx = movingRight ? moveSpeed : -moveSpeed;
-            dy = movingDown ? moveSpeed : -moveSpeed;
+            updateVelocityFromDirection();
         }
     }
+    
+    private void updateVelocityFromDirection() {
+        dx = movingRight ? moveSpeed : -moveSpeed;
+        dy = movingDown ? moveSpeed : -moveSpeed;
+    }
 
+    private boolean isStageWithObstacles() {
+        if (game == null) return false;
+        int st = game.getCurrentStage();
+        return st == STAGE_WITH_OBSTACLES || st == STAGE_WITH_OBSTACLES_2;
+    }
+    
     private void autoAdjustForStage4() {
         try {
-            if (game == null) return;
-            int st = game.getCurrentStage();
-            if (st != 4 && st != 5) return;
+            if (!isStageWithObstacles()) return;
 
             boolean belowHasObstacle = anyObstacleBelow();
             if (!belowHasObstacle) {
@@ -149,9 +188,7 @@ public class MonsterEntity extends Entity {
 
     private void preventObstaclePenetration(long delta) {
         try {
-            if (game == null) return;
-            int st = game.getCurrentStage();
-            if (st != 4 && st != 5) return;
+            if (!isStageWithObstacles()) return;
 
             double nextX = x + (delta * dx) / 1000.0;
             double nextY = y + (delta * dy) / 1000.0;
@@ -186,20 +223,20 @@ public class MonsterEntity extends Entity {
     }
 
     private void handleBoundaryBounce() {
-        if (x <= 10) {
+        if (x <= BOUNDARY_LEFT) {
             movingRight = true;
             dx = moveSpeed;
             updateDirection();
-        } else if (x >= 760) {
+        } else if (x >= BOUNDARY_RIGHT) {
             movingRight = false;
             dx = -moveSpeed;
             updateDirection();
         }
 
-        if (y <= 40) {
+        if (y <= BOUNDARY_TOP) {
             movingDown = true;
             dy = moveSpeed;
-        } else if (y >= 520) {
+        } else if (y >= BOUNDARY_BOTTOM) {
             movingDown = false;
             dy = -moveSpeed;
         }
@@ -208,14 +245,12 @@ public class MonsterEntity extends Entity {
     private void randomDirectionChange(long now) {
         if (now - lastMoveChange > moveChangeDelay) {
             lastMoveChange = now;
-            moveChangeDelay = randomDelay(1000, 2000);
+            moveChangeDelay = randomDelay(DIRECTION_CHANGE_BASE, DIRECTION_CHANGE_RANGE);
 
             if (random.nextBoolean()) movingRight = !movingRight;
             if (random.nextBoolean()) movingDown = !movingDown;
 
-            dx = movingRight ? moveSpeed : -moveSpeed;
-            dy = movingDown ? moveSpeed : -moveSpeed;
-
+            updateVelocityFromDirection();
             updateDirection();
         }
     }
@@ -237,8 +272,8 @@ public class MonsterEntity extends Entity {
     private void processAttack(long now) {
         if (now - lastAttackTime > attackDelay) {
             lastAttackTime = now;
-            attackDelay = randomDelay(1500, 2000);
-            if (random.nextDouble() < 0.6) fireShot();
+            attackDelay = randomDelay(ATTACK_BASE_DELAY, ATTACK_RANGE_DELAY);
+            if (random.nextDouble() < ATTACK_PROBABILITY) fireShot();
         }
     }
 
@@ -272,8 +307,8 @@ public class MonsterEntity extends Entity {
         }
 
         if (fort != null) {
-            double fx = fort.getX() + 40;
-            double fy = fort.getY() + 40;
+            double fx = fort.getX() + FORTRESS_CENTER_OFFSET;
+            double fy = fort.getY() + FORTRESS_CENTER_OFFSET;
 
             double dPlayer = (player != null)
                     ? Math.hypot(targetX - startX, targetY - startY)
@@ -300,8 +335,8 @@ public class MonsterEntity extends Entity {
         dy /= len;
 
         double speed =
-            ("iceshot".equals(shotType)) ? 200 :
-            ("bombshot".equals(shotType)) ? 250 : 180;
+            ("iceshot".equals(shotType)) ? ICESHOT_SPEED :
+            ("bombshot".equals(shotType)) ? BOMBSHOT_SPEED : NORMAL_SHOT_SPEED;
 
         return new double[]{ dx * speed, dy * speed };
     }
@@ -336,7 +371,7 @@ public class MonsterEntity extends Entity {
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof UserEntity) {
-            ((UserEntity) other).takeDamage(10);
+            ((UserEntity) other).takeDamage(COLLISION_DAMAGE);
             game.removeEntity(this);
         }
     }
@@ -346,9 +381,8 @@ public class MonsterEntity extends Entity {
     @Override
     public void draw(java.awt.Graphics g) {
         if (sprite == null) return;
-        double scale = 0.5;
-        int w = (int)(sprite.getWidth() * scale);
-        int h = (int)(sprite.getHeight() * scale);
+        int w = (int)(sprite.getWidth() * DRAW_SCALE);
+        int h = (int)(sprite.getHeight() * DRAW_SCALE);
 
         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g;
         java.awt.Image scaled = sprite.getImage().getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH);

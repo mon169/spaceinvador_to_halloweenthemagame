@@ -18,7 +18,7 @@ public class Boss5 extends MonsterEntity {
      *        기본 상태
      * ============================= */
     private final Game game;
-    private int health = 10;
+    private int health = 1000;
     private boolean enraged = false;
 
     /* =============================

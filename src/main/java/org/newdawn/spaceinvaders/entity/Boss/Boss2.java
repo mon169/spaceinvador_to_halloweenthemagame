@@ -14,7 +14,7 @@ public class Boss2 extends MonsterEntity {
 	// --------------------------
 	private final Game game;
 
-	private static final int MAX_HEALTH = 5;
+	private static final int MAX_HEALTH = 1000;
 	private int health = MAX_HEALTH;
 
 	private boolean enraged = false;
