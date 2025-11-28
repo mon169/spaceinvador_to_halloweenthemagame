@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.newdawn.spaceinvaders.Game;
-import org.newdawn.spaceinvaders.entity.Boss.Boss1;
+import org.newdawn.spaceinvaders.entity.Boss.BossEntity;
 
 /**
  * 💣 BombShotEntity
@@ -63,9 +63,9 @@ public class BombShotEntity extends Entity {
         // 제거 및 알림
         System.out.println("💥 폭발로 " + toHit.size() + "마리 처치!");
         for (Entity e : toHit) {
-            if (e instanceof Boss1) {
+            if (e instanceof BossEntity) {
                 // 보스는 체력 기반으로 피해 받음
-                ((Boss1) e).takeDamage(200); // 폭탄 피해
+                ((BossEntity) e).takeDamage(200); // 폭탄 피해
             } else {
                 game.removeEntity(e);
                 game.notifyAlienKilled();

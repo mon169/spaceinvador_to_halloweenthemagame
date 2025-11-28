@@ -8,18 +8,15 @@ import java.util.List;
 import org.newdawn.spaceinvaders.*;
 import org.newdawn.spaceinvaders.entity.*;
 
-public class Boss2 extends MonsterEntity {
+public class Boss2 extends BossEntity {
 	// --------------------------
 	//  🔧 기본 설정
 	// --------------------------
 	private final Game game;
 
-	private static final int MAX_HEALTH = 5;
-	private int health = MAX_HEALTH;
+	private static final int MAX_HEALTH = 1500;
 
 	private boolean enraged = false;
-	private long lastHitTime = 0;
-	private static final long HIT_COOLDOWN = 200;
 
 	// 이동
 	private double baseY;
@@ -60,7 +57,8 @@ public class Boss2 extends MonsterEntity {
 	//  🎃 생성자
 	// --------------------------
 	public Boss2(Game game, int x, int y) {
-		super(game, x, y);
+		super(game, "sprites/witchr.png", x, y);
+		this.health = MAX_HEALTH;
 		this.game = game;
 		this.baseY = y;
 
@@ -121,11 +119,14 @@ public class Boss2 extends MonsterEntity {
 	// --------------------------
 	@Override
 	public void move(long delta) {
-		updateMovement(delta);
-		updateEnrage();
-		updateUltimateSkill();
-		updateNormalAttack();
-		cleanupEffects();
+		updateFreeze();
+		if (!frozen) {
+			updateMovement(delta);
+			updateEnrage();
+			updateUltimateSkill();
+			updateNormalAttack();
+			cleanupEffects();
+		}
 	}
 
 	private void updateMovement(long delta) {
@@ -228,26 +229,20 @@ public class Boss2 extends MonsterEntity {
 	// 💥 피격
 	// --------------------------
 	@Override
-	public boolean takeDamage(int damage) {
-		long now = System.currentTimeMillis();
-		if (now - lastHitTime < HIT_COOLDOWN) return false;
-
-		lastHitTime = now;
-		health -= damage;
-
-		System.out.println("🧪 마녀 피격! 남은 HP: " + health);
-
-		if (health <= 0) {
-			System.out.println("💀 마녀 사망!");
-			game.removeEntity(this);
-			game.bossDefeated();
-			return true;
+	public void takeDamage(int damage) {
+		super.takeDamage(damage);
+		if (health > 0) {
+			System.out.println("🧪 마녀 피격! 남은 HP: " + health);
 		}
-		return false;
 	}
 
 	@Override
-	public void collidedWith(Entity other) {}
+	public void collidedWith(Entity other) {
+		if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
+
+		// 아이템 데미지 적용
+		collidedWithItem(other);
+	}
 
 	// --------------------------
 	// 🎨 그리기
@@ -392,5 +387,16 @@ public class Boss2 extends MonsterEntity {
 		boolean isExpired(long now) {
 			return now > startTime + duration;
 		}
+	}
+
+	private void spawnPotionBomb() {
+		int px = (int)x + sprite.getWidth() / 2;
+		int py = (int)y + sprite.getHeight() / 2;
+		game.addEntity(new PotionBomb(px, py));
+	}
+
+	@Override
+	protected void fireShot() {
+		spawnPotionBomb();
 	}
 }
