@@ -341,6 +341,8 @@ public class MonsterEntity extends Entity {
         }
     }
 
+    
+
     @Override
     public void draw(java.awt.Graphics g) {
         if (sprite == null) return;
