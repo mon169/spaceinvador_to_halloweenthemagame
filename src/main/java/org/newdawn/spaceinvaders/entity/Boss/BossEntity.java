@@ -3,14 +3,20 @@ package org.newdawn.spaceinvaders.entity.Boss;
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.BombShotEntity;
-import org.newdawn.spaceinvaders.entity.MonsterEntity;
-import org.newdawn.spaceinvaders.entity.EnemyShotEntity; 
-// 필요시 다른 ShotEntity 파생 클래스도 import 할 수 있지만, 아래 코드는 클래스 이름으로 광범위하게 방어합니다.
-
+import org.newdawn.spaceinvaders.entity.IceShotEntity;
+import org.newdawn.spaceinvaders.entity.ShieldEntity;
 
 public abstract class BossEntity extends Entity {
     protected int health = 1000;
     protected Game game;
+
+    // 동결 관련
+    protected boolean frozen = false;
+    protected long freezeEndTime = 0;
+
+    // 피격 쿨다운
+    protected long lastHitTime = 0;
+    protected static final long HIT_COOLDOWN = 200; // 피격 무적 시간
 
     public BossEntity(Game game, String ref, int x, int y) {
         super(ref, x, y);
@@ -18,6 +24,12 @@ public abstract class BossEntity extends Entity {
     }
 
     public void takeDamage(int damage) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastHitTime < HIT_COOLDOWN) {
+            return; // 쿨다운 중 무시
+        }
+        lastHitTime = currentTime;
+
         health -= damage;
         if (health <= 0) {
             game.bossDefeated();
@@ -29,29 +41,32 @@ public abstract class BossEntity extends Entity {
         return health;
     }
 
-    /**
-     * 🛡️ 충돌 방어 로직 (모든 BossX.java에 자동으로 적용됩니다.)
-     * 플레이어 아이템/탄환에 충돌 시, 보스가 스스로 삭제되는 것을 방지합니다.
-     */
-    @Override
-    public void collidedWith(Entity other) {
-        String otherClassName = other.getClass().getSimpleName();
-        
-        // 1. 아이템/폭탄/총알 계열 충돌 시:
-        // - 보스가 스스로를 삭제(removeEntity)하는 것을 막기 위해 아무것도 하지 않고 종료합니다.
-        // - 아이템의 효과(데미지/동결)는 해당 아이템 클래스(BombShotEntity 등)에서 별도로 처리합니다.
-        if (other instanceof BombShotEntity ||           // 명시적인 BombShotEntity
-            otherClassName.contains("Item") ||    // 모든 ShotEntity 파생 클래스 (IceShot 포함)
-            otherClassName.contains("SheildEntity")) {          // Item 엔티티
-            
-            return; // 보스는 무시
+    protected void updateFreeze() {
+        if (frozen && System.currentTimeMillis() > freezeEndTime) {
+            frozen = false;
+            System.out.println("❄️ 동결 해제!");
         }
-
-        // 2. 적 총알이나 다른 몬스터는 무시합니다. (Boss1.java에서 가져온 기존 로직)
-        if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) {
-            return;
-        }
-
-        // 이외의 충돌(예: 플레이어 기체와의 충돌 등)은 여기에 추가 로직을 넣을 수 있습니다.
     }
+
+    protected void freeze(long duration) {
+        frozen = true;
+        freezeEndTime = System.currentTimeMillis() + duration;
+        System.out.println("❄️ 보스 동결! (" + (duration / 1000) + "초)");
+    }
+
+    // 아이템 데미지 적용
+    public void collidedWithItem(Entity other) {
+        if (other instanceof BombShotEntity) {
+            takeDamage(500); // 폭탄 데미지 (너무 강해서 줄임)
+            game.removeEntity(other);
+        } else if (other instanceof IceShotEntity) {
+            freeze(3000); // 3초 동결
+            game.removeEntity(other);
+        } else if (other instanceof ShieldEntity) {
+            takeDamage(25); // 실드 데미지 (너무 강해서 줄임)
+            game.removeEntity(other);
+        }
+    }
+
+    protected abstract void fireShot();
 }

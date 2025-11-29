@@ -11,15 +11,18 @@ import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
+import org.newdawn.spaceinvaders.entity.UserEntity;
 
-public class Boss5 extends MonsterEntity {
+public class Boss5 extends BossEntity {
 
     /* =============================
      *        기본 상태
      * ============================= */
     private final Game game;
-    private int health = 1000;
     private boolean enraged = false;
+
+    private long lastHitTime = 0;
+    private static final long HIT_COOLDOWN = 200;
 
     /* =============================
      *        암전 패턴 상태
@@ -56,21 +59,16 @@ public class Boss5 extends MonsterEntity {
     private Sprite spriteRight;
 
     /* =============================
-     *        피격
-     * ============================= */
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200;
-
-    /* =============================
      *        총알 공격
      * ============================= */
     private long lastShotTime = 0;
     private long shotInterval = 3000;
 
     public Boss5(Game game, int x, int y) {
-        super(game, x, y);
+        super(game, "sprites/vampirer.png", x, y);
         this.game = game;
         this.baseY = y;
+        this.health = 1000;
 
         spriteLeft = SpriteStore.get().getSprite("sprites/vampirel.png");
         spriteRight = SpriteStore.get().getSprite("sprites/vampirer.png");
@@ -88,20 +86,23 @@ public class Boss5 extends MonsterEntity {
      * =============================================== */
     @Override
     public void move(long delta) {
-        long now = System.currentTimeMillis();
-        double oldX = x;
+        updateFreeze();
+        if (!frozen) {
+            long now = System.currentTimeMillis();
+            double oldX = x;
 
-        updatePosition(delta);
-        clampPosition();
-        updateSpriteDirection(oldX);
+            updatePosition(delta);
+            clampPosition();
+            updateSpriteDirection(oldX);
 
-        checkEnrage();
+            checkEnrage();
 
-        processDarkAttack(now);
-        tryStartDarkAttack(now);
+            processDarkAttack(now);
+            tryStartDarkAttack(now);
 
-        updateShotInterval();
-        tryNormalShot(now);
+            updateShotInterval();
+            tryNormalShot(now);
+        }
     }
 
     private void updatePosition(long delta) {
@@ -195,26 +196,19 @@ public class Boss5 extends MonsterEntity {
      *                DAMAGE HANDLING
      * =============================================== */
     @Override
-    public boolean takeDamage(int damage) {
-        long now = System.currentTimeMillis();
-        if (now - lastHitTime < HIT_COOLDOWN) return false;
-        lastHitTime = now;
-
-        health -= damage;
-        System.out.println("🧛 뱀파이어 피격! 남은 HP: " + health);
-
-        if (health <= 0) {
-            System.out.println("💀 뱀파이어 사망!");
-            game.removeEntity(this);
-            game.bossDefeated();
-            return true;
+    public void takeDamage(int damage) {
+        super.takeDamage(damage);
+        if (health > 0) {
+            System.out.println("🧛 뱀파이어 피격! 남은 HP: " + health);
         }
-        return false;
     }
 
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
+
+        // 아이템 데미지 적용
+        collidedWithItem(other);
     }
 
     /* ===============================================
@@ -292,5 +286,23 @@ public class Boss5 extends MonsterEntity {
         g2.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         g2.setColor(Color.white);
         g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
+    }
+
+    @Override
+    protected void fireShot() {
+        // Normal shot
+        int startX = getX() + sprite.getWidth() / 2;
+        int startY = getY() + sprite.getHeight() / 2;
+        UserEntity player = game.getShip();
+        double targetX = startX;
+        double targetY = startY;
+        if (player != null) {
+            targetX = player.getX() + player.getWidth() / 2.0;
+            targetY = player.getY() + player.getHeight() / 2.0;
+        }
+        double vx = (targetX - startX) / 50;
+        double vy = (targetY - startY) / 50;
+        EnemyShotEntity shot = new EnemyShotEntity(game, "sprites/shot.png", startX, startY, vx, vy, "shot", this);
+        game.addEntity(shot);
     }
 }

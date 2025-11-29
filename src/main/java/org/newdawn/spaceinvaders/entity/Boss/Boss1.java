@@ -9,6 +9,8 @@ import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.newdawn.spaceinvaders.entity.UserEntity;
+
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
@@ -25,10 +27,12 @@ import org.newdawn.spaceinvaders.entity.ShieldEntity;
  * - 체력이 줄수록 공격 속도 증가
  * - 한글 폰트 정상 출력
  */
-public class Boss1 extends MonsterEntity {
+public class Boss1 extends BossEntity {
     private final Game game;
-    private int health = 1000; // ✅ 체력 복원 (1000 → 1500)
     private boolean enraged = false;
+
+    private long lastHitTime = 0;
+    private static final long HIT_COOLDOWN = 200;
 
     // 전기 궁극기 관련
     private long lastElectricAttack = 0;
@@ -56,12 +60,6 @@ public class Boss1 extends MonsterEntity {
     private Sprite spriteLeft;
     private Sprite spriteRight;
 
-    private boolean frozen = false;
-    private long freezeEndTime = 0;
-
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200; // 피격 무적 시간
-
     private void updateFreeze(long now) {
         if (frozen && now > freezeEndTime) {
             frozen = false;
@@ -78,7 +76,8 @@ public class Boss1 extends MonsterEntity {
     private long shotInterval = 3000; // 기본 3초 간격
 
     public Boss1(Game game, int x, int y) {
-        super(game, x, y);
+        super(game, "sprites/frankenr.png", x, y);
+        this.health = 1500; // 보스 체력 설정
         this.game = game;
         this.baseY = y;
 
@@ -98,10 +97,11 @@ public class Boss1 extends MonsterEntity {
 
     @Override
     public void move(long delta) {
-        long now = System.currentTimeMillis();
-        updateFreeze(now);
+        updateFreeze();
 
         if (frozen) return; // 얼었으면 움직이지 않음
+
+        long now = System.currentTimeMillis();
 
         // 보스 전용 이동 로직
         double oldX = x;
@@ -183,41 +183,19 @@ public class Boss1 extends MonsterEntity {
     }
 
     @Override
-    public boolean takeDamage(int damage) {
-        // 피격 무적 시간 처리
-        long now = System.currentTimeMillis();
-        if (now - lastHitTime < HIT_COOLDOWN) return false;
-        lastHitTime = now;
-
-        health -= damage;
-        System.out.println("프랑켄슈타인 피격! 남은 HP: " + health);
-
-        if (health <= 0) {
-            System.out.println("프랑켄슈타인 사망!");
-            game.removeEntity(this);
-            game.bossDefeated();
-            return true;
+    public void takeDamage(int damage) {
+        super.takeDamage(damage);
+        if (health > 0) {
+            System.out.println("프랑켄슈타인 피격! 남은 HP: " + health);
         }
-        return false;
     }
 
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
 
-        // 보스 전용 충돌 처리
-        if (other instanceof BombShotEntity) {
-            // 폭탄: 피해 받음
-            takeDamage(100); // 폭탄 피해
-            game.removeEntity(other);
-        } else if (other instanceof IceShotEntity) {
-            // 얼음: 얼림
-            freeze(5000); // 5초 얼림
-            game.removeEntity(other);
-        } else if (other instanceof ShieldEntity) {
-            // 방어막: 피해 받음 (보스는 방어막에 닿아도 사라지지 않음)
-            takeDamage(50); // 방어막 충돌 피해
-        }
+        // 아이템 데미지 적용
+        collidedWithItem(other);
     }
 
     @Override
@@ -277,5 +255,23 @@ public class Boss1 extends MonsterEntity {
         g2.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         g2.setColor(Color.white);
         g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
+    }
+
+    @Override
+    protected void fireShot() {
+        // MonsterEntity의 fireShot 로직 복사 (간단 버전)
+        int startX = getX() + sprite.getWidth() / 2;
+        int startY = getY() + sprite.getHeight() / 2;
+        UserEntity player = game.getShip();
+        double targetX = startX;
+        double targetY = startY;
+        if (player != null) {
+            targetX = player.getX() + player.getWidth() / 2.0;
+            targetY = player.getY() + player.getHeight() / 2.0;
+        }
+        double vx = (targetX - startX) / 50; // 속도 조정
+        double vy = (targetY - startY) / 50;
+        EnemyShotEntity shot = new EnemyShotEntity(game, "sprites/shot.png", startX, startY, vx, vy, "shot", this);
+        game.addEntity(shot);
     }
 }
