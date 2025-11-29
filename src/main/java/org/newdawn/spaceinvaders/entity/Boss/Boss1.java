@@ -15,9 +15,6 @@ import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
-import org.newdawn.spaceinvaders.entity.BombShotEntity;
-import org.newdawn.spaceinvaders.entity.IceShotEntity;
-import org.newdawn.spaceinvaders.entity.ShieldEntity;
 
 /**
  *   Stage 1 Boss: 프랑켄슈타인
@@ -25,9 +22,8 @@ import org.newdawn.spaceinvaders.entity.ShieldEntity;
  * - 체력이 줄수록 공격 속도 증가
  * - 한글 폰트 정상 출력
  */
-public class Boss1 extends MonsterEntity {
+public class Boss1 extends BossEntity {
     private final Game game;
-    private int health = 1500; // ✅ 체력 복원 (1000 → 1500)
     private boolean enraged = false;
 
     // 전기 궁극기 관련
@@ -52,35 +48,18 @@ public class Boss1 extends MonsterEntity {
     private long shakeDuration = 2500;
 
     private final List<Sprite> lightningSprites = new ArrayList<>();
-    private Sprite flashSprite;
     private Sprite spriteLeft;
     private Sprite spriteRight;
-
-    private boolean frozen = false;
-    private long freezeEndTime = 0;
-
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200; // 피격 무적 시간
-
-    private void updateFreeze(long now) {
-        if (frozen && now > freezeEndTime) {
-            frozen = false;
-        }
-    }
-
-    public void freeze(int duration) {
-        frozen = true;
-        freezeEndTime = System.currentTimeMillis() + duration;
-    }
 
     // 공격 빈도 제어용
     private long lastShotTime = 0;
     private long shotInterval = 3000; // 기본 3초 간격
 
     public Boss1(Game game, int x, int y) {
-        super(game, x, y);
+        super(game, "sprites/frankenr.png", x, y);
         this.game = game;
         this.baseY = y;
+        this.health = 1000; // 보스 체력 설정
 
         spriteLeft  = SpriteStore.get().getSprite("sprites/frankenl.png");
         spriteRight = SpriteStore.get().getSprite("sprites/frankenr.png");
@@ -90,7 +69,7 @@ public class Boss1 extends MonsterEntity {
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/lightning1.png");
+        SpriteStore.get().getSprite("sprites/lightning1.png");
         
         // 보스 등장 시 배경 변경 (zombiebg.jpg)
         game.setBackground("bg/zombiebg.jpg");
@@ -98,12 +77,9 @@ public class Boss1 extends MonsterEntity {
 
     @Override
     public void move(long delta) {
-        long now = System.currentTimeMillis();
-        updateFreeze(now);
+        updateFreeze();
+        if (frozen) return;
 
-        if (frozen) return; // 얼었으면 움직이지 않음
-
-        // 보스 전용 이동 로직
         double oldX = x;
         // 사인 함수를 이용한 수평/수직 이동
         x += Math.sin(System.currentTimeMillis() / 800.0) * 0.4 * delta;
@@ -123,6 +99,8 @@ public class Boss1 extends MonsterEntity {
             electricCooldown = 5000; // 궁극기 쿨타임 감소
             System.out.println("프랑켄슈타인 분노 상태!");
         }
+
+        long now = System.currentTimeMillis();
 
         // 전기 궁극기 발동 체크
         if (!usingElectric && now - lastElectricAttack >= electricCooldown) {
@@ -146,7 +124,7 @@ public class Boss1 extends MonsterEntity {
         updateShotInterval();
         if (!usingElectric && now - lastShotTime >= shotInterval) {
             lastShotTime = now;
-            fireShot(); // MonsterEntity 메서드
+            // fireShot(); // 제거: shot 발사 안 함
         }
     }
 
@@ -183,41 +161,8 @@ public class Boss1 extends MonsterEntity {
     }
 
     @Override
-    public boolean takeDamage(int damage) {
-        // 피격 무적 시간 처리
-        long now = System.currentTimeMillis();
-        if (now - lastHitTime < HIT_COOLDOWN) return false;
-        lastHitTime = now;
-
-        health -= damage;
-        System.out.println("프랑켄슈타인 피격! 남은 HP: " + health);
-
-        if (health <= 0) {
-            System.out.println("프랑켄슈타인 사망!");
-            game.removeEntity(this);
-            game.bossDefeated();
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public void collidedWith(Entity other) {
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
-
-        // 보스 전용 충돌 처리
-        if (other instanceof BombShotEntity) {
-            // 폭탄: 피해 받음
-            takeDamage(100); // 폭탄 피해
-            game.removeEntity(other);
-        } else if (other instanceof IceShotEntity) {
-            // 얼음: 얼림
-            freeze(5000); // 5초 얼림
-            game.removeEntity(other);
-        } else if (other instanceof ShieldEntity) {
-            // 방어막: 피해 받음 (보스는 방어막에 닿아도 사라지지 않음)
-            takeDamage(50); // 방어막 충돌 피해
-        }
     }
 
     @Override

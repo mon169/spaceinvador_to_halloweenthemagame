@@ -2,7 +2,6 @@ package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.Boss.BossEntity;
-import org.newdawn.spaceinvaders.entity.Boss.Boss1;
 
 /**
  * 🛡 요새 방어막 엔티티 (ShieldEntity)
@@ -115,7 +114,7 @@ public class ShieldEntity extends Entity {
             System.out.println("🛡 방어막이 적 공격을 막았습니다! (방어막 유지)");
         }
         // 🛡 몬스터와 충돌 시 몬스터만 제거, 방어막은 유지 (보스는 제외)
-        if (other instanceof MonsterEntity && !(other instanceof org.newdawn.spaceinvaders.entity.Boss.Boss1)) {
+        if (other instanceof MonsterEntity && !(other instanceof BossEntity)) {
             MonsterEntity monster = (MonsterEntity) other;
             onBlockedMonster(monster); 	// 💫 효과용 콜백
             game.removeEntity(monster); 	// 몬스터만 제거 (방어막은 유지)

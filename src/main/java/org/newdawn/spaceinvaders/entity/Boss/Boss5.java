@@ -12,13 +12,13 @@ import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
-public class Boss5 extends MonsterEntity {
+public class Boss5 extends BossEntity {
 
     /* =============================
      *        기본 상태
      * ============================= */
     private final Game game;
-    private int health = 10;
+    // use inherited health from BossEntity
     private boolean enraged = false;
 
     /* =============================
@@ -56,21 +56,16 @@ public class Boss5 extends MonsterEntity {
     private Sprite spriteRight;
 
     /* =============================
-     *        피격
-     * ============================= */
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200;
-
-    /* =============================
      *        총알 공격
      * ============================= */
     private long lastShotTime = 0;
     private long shotInterval = 3000;
 
     public Boss5(Game game, int x, int y) {
-        super(game, x, y);
+        super(game, "sprites/vampirer.png", x, y);
         this.game = game;
         this.baseY = y;
+        this.health = 1000; // 보스 체력 설정 (부모 필드)
 
         spriteLeft = SpriteStore.get().getSprite("sprites/vampirel.png");
         spriteRight = SpriteStore.get().getSprite("sprites/vampirer.png");
@@ -88,6 +83,9 @@ public class Boss5 extends MonsterEntity {
      * =============================================== */
     @Override
     public void move(long delta) {
+        updateFreeze();
+        if (frozen) return;
+
         long now = System.currentTimeMillis();
         double oldX = x;
 
@@ -180,7 +178,7 @@ public class Boss5 extends MonsterEntity {
 
         if (now - lastShotTime >= shotInterval) {
             lastShotTime = now;
-            fireShot();
+            // fireShot(); // 제거: shot 발사 안 함
         }
     }
 
@@ -195,26 +193,16 @@ public class Boss5 extends MonsterEntity {
      *                DAMAGE HANDLING
      * =============================================== */
     @Override
-    public boolean takeDamage(int damage) {
-        long now = System.currentTimeMillis();
-        if (now - lastHitTime < HIT_COOLDOWN) return false;
-        lastHitTime = now;
-
-        health -= damage;
+    public void takeDamage(int damage) {
+        super.takeDamage(damage);
         System.out.println("🧛 뱀파이어 피격! 남은 HP: " + health);
-
-        if (health <= 0) {
-            System.out.println("💀 뱀파이어 사망!");
-            game.removeEntity(this);
-            game.bossDefeated();
-            return true;
-        }
-        return false;
     }
 
-    @Override
     public void collidedWith(Entity other) {
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
+
+        // 아이템 데미지 적용
+        collidedWithItem(other);
     }
 
     /* ===============================================

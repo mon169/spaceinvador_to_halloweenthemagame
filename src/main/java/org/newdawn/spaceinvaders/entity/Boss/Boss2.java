@@ -8,19 +8,15 @@ import java.util.List;
 import org.newdawn.spaceinvaders.*;
 import org.newdawn.spaceinvaders.entity.*;
 
-public class Boss2 extends MonsterEntity {
+public class Boss2 extends BossEntity {
 	// --------------------------
 	//  🔧 기본 설정
 	// --------------------------
 	private final Game game;
 
-	private static final int MAX_HEALTH = 5;
-	private int health = MAX_HEALTH;
+	private static final int MAX_HEALTH = 1000;
 
 	private boolean enraged = false;
-	private long lastHitTime = 0;
-	private static final long HIT_COOLDOWN = 200;
-
 	// 이동
 	private double baseY;
 	private double verticalMoveRange = 30;
@@ -50,7 +46,6 @@ public class Boss2 extends MonsterEntity {
 	// 스프라이트
 	private Sprite spriteLeft;
 	private Sprite spriteRight;
-	private Sprite potionSprite;
 	private Sprite bombSprite;
 
 	// 폭발 연출
@@ -60,9 +55,11 @@ public class Boss2 extends MonsterEntity {
 	//  🎃 생성자
 	// --------------------------
 	public Boss2(Game game, int x, int y) {
-		super(game, x, y);
+		super(game, "sprites/witchr.png", x, y);
 		this.game = game;
 		this.baseY = y;
+		// 부모 클래스의 health를 사용하도록 초기화
+		this.health = MAX_HEALTH;
 
 		loadSprites();
 		spawnInitialPotionBombs();
@@ -76,7 +73,7 @@ public class Boss2 extends MonsterEntity {
 		spriteRight = SpriteStore.get().getSprite("sprites/witchr.png");
 		sprite = spriteRight;
 
-		potionSprite = SpriteStore.get().getSprite("sprites/poisonpotion.png");
+		SpriteStore.get().getSprite("sprites/poisonpotion.png");
 		bombSprite = SpriteStore.get().getSprite("sprites/poisionbomb.png");
 
 		// 보스 등장 시 배경 변경
@@ -121,6 +118,9 @@ public class Boss2 extends MonsterEntity {
 	// --------------------------
 	@Override
 	public void move(long delta) {
+		updateFreeze();
+		if (frozen) return;
+
 		updateMovement(delta);
 		updateEnrage();
 		updateUltimateSkill();
@@ -173,7 +173,7 @@ public class Boss2 extends MonsterEntity {
 
 		if (!usingPotion && now - lastShotTime >= shotInterval) {
 			lastShotTime = now;
-			fireShot();
+			// fireShot(); // 제거: shot 발사 안 함
 		}
 	}
 
@@ -228,26 +228,20 @@ public class Boss2 extends MonsterEntity {
 	// 💥 피격
 	// --------------------------
 	@Override
-	public boolean takeDamage(int damage) {
-		long now = System.currentTimeMillis();
-		if (now - lastHitTime < HIT_COOLDOWN) return false;
-
-		lastHitTime = now;
-		health -= damage;
-
-		System.out.println("🧪 마녀 피격! 남은 HP: " + health);
-
-		if (health <= 0) {
-			System.out.println("💀 마녀 사망!");
-			game.removeEntity(this);
-			game.bossDefeated();
-			return true;
+	public void takeDamage(int damage) {
+		super.takeDamage(damage);
+		if (health > 0) {
+			System.out.println("🧪 마녀 피격! 남은 HP: " + health);
 		}
-		return false;
 	}
 
 	@Override
-	public void collidedWith(Entity other) {}
+	public void collidedWith(Entity other) {
+		if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
+
+		// 아이템 데미지 적용
+		collidedWithItem(other);
+	}
 
 	// --------------------------
 	// 🎨 그리기
