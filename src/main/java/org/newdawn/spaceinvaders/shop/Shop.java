@@ -39,36 +39,36 @@ public class Shop {
         // 방어력 증가
         itemsForSale.add(new Item(
             "카라멜 코팅 슈트",
-            "부서져도 달콤한 방어력 +2!",
+            "부서져도 달콤한 방어력 +20!",
             300
         ) {
             @Override
             public void applyEffect(UserEntity ship) {
-                ship.increaseDefense(2);
+                ship.increaseDefense(20);
             }
         });
 
         // 공격력 증가
         itemsForSale.add(new Item(
             "강력한 마늘",
-            "더욱 매운 마늘로 공격력이 10 증가!",
+            "더욱 매운 마늘로 공격력이 5 증가!",
             250
         ) {
             @Override
             public void applyEffect(UserEntity ship) {
-                ship.increaseAttackPower(10);
+                ship.increaseAttackPower(5);
             }
         });
 
         // 최대 체력 증가
         itemsForSale.add(new Item(
             "쿠키 에너지바",
-            "먹으면 용기가 생겨! 체력이 +50 증가.",
+            "먹으면 용기가 생겨! 체력이 +30 증가.",
             350
         ) {
             @Override
             public void applyEffect(UserEntity ship) {
-                ship.increaseMaxHealth(50);
+                ship.increaseMaxHealth(30);
             }
         });
 

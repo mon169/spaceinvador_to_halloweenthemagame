@@ -177,8 +177,8 @@ public class Boss4 extends BossEntity {
     }
 
     private void applyThrowDamage() {
-        if (game.getShip() != null) game.getShip().takeDamage(20);
-        if (game.getFortress() != null) game.getFortress().damage(12);
+        if (game.getShip() != null) game.getShip().takeDamage(30);
+        if (game.getFortress() != null) game.getFortress().damage(30);
     }
 
 

@@ -23,7 +23,7 @@ public class Boss3 extends BossEntity {
     private boolean enraged = false;
 
     /* ===========================================================
-       붕대 공격 (Wrap Attack)
+       눈부심 공격 (Wrap Attack)
        =========================================================== */
     private long lastWrapAttack = 0;
     private long wrapCooldown = 8000;
@@ -128,7 +128,7 @@ public class Boss3 extends BossEntity {
     }
 
     /* ===========================================================
-       붕대 공격 처리
+       눈부심 공격 처리
        =========================================================== */
     private void processWrapAttack() {
         long now = System.currentTimeMillis();
@@ -152,7 +152,7 @@ public class Boss3 extends BossEntity {
         wrapEndTime = lastWrapAttack + wrapDuration;
         lastWrapTick = lastWrapAttack;
 
-        System.out.println("🌀 미라 붕대 공격 발동!");
+        System.out.println("🌀 미라 눈부심 공격 발동!");
         dealWrapDamage(); // 첫 틱 즉시 데미지
     }
 
@@ -169,8 +169,8 @@ public class Boss3 extends BossEntity {
     }
 
     private void dealWrapDamage() {
-        if (game.getShip() != null) game.getShip().takeDamage(18);
-        if (game.getFortress() != null) game.getFortress().damage(12);
+        if (game.getShip() != null) game.getShip().takeDamage(15);
+        if (game.getFortress() != null) game.getFortress().damage(15);
     }
 
     /* ===========================================================

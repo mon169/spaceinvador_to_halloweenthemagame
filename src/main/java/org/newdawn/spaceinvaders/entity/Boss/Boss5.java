@@ -163,10 +163,10 @@ public class Boss5 extends BossEntity {
 
     private void dealDarkDamage() {
         if (game.getShip() != null) {
-            game.getShip().takeDamage(25);
+            game.getShip().takeDamage(50);
         }
         if (game.getFortress() != null) {
-            game.getFortress().damage(15);
+            game.getFortress().damage(50);
         }
     }
 

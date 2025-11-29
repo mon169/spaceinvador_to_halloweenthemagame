@@ -15,9 +15,9 @@ public class MonsterEntity extends Entity {
     private static final int BOUNDARY_BOTTOM = 520;
     
     private static final int STAGE1_SPEED = 40;
-    private static final int STAGE2_SPEED = 50;
-    private static final int STAGE3_SPEED = 60;
-    private static final int STAGE4_SPEED = 70;
+    private static final int STAGE2_SPEED = 55;
+    private static final int STAGE3_SPEED = 70;
+    private static final int STAGE4_SPEED = 90;
     
     private static final int DIRECTION_CHANGE_BASE = 1000;
     private static final int DIRECTION_CHANGE_RANGE = 2000;
