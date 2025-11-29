@@ -9,17 +9,12 @@ import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.newdawn.spaceinvaders.entity.UserEntity;
-
 import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.Sprite;
 import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
-import org.newdawn.spaceinvaders.entity.BombShotEntity;
-import org.newdawn.spaceinvaders.entity.IceShotEntity;
-import org.newdawn.spaceinvaders.entity.ShieldEntity;
 
 /**
  *   Stage 1 Boss: 프랑켄슈타인
@@ -30,9 +25,6 @@ import org.newdawn.spaceinvaders.entity.ShieldEntity;
 public class Boss1 extends BossEntity {
     private final Game game;
     private boolean enraged = false;
-
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200;
 
     // 전기 궁극기 관련
     private long lastElectricAttack = 0;
@@ -56,20 +48,8 @@ public class Boss1 extends BossEntity {
     private long shakeDuration = 2500;
 
     private final List<Sprite> lightningSprites = new ArrayList<>();
-    private Sprite flashSprite;
     private Sprite spriteLeft;
     private Sprite spriteRight;
-
-    private void updateFreeze(long now) {
-        if (frozen && now > freezeEndTime) {
-            frozen = false;
-        }
-    }
-
-    public void freeze(int duration) {
-        frozen = true;
-        freezeEndTime = System.currentTimeMillis() + duration;
-    }
 
     // 공격 빈도 제어용
     private long lastShotTime = 0;
@@ -77,9 +57,9 @@ public class Boss1 extends BossEntity {
 
     public Boss1(Game game, int x, int y) {
         super(game, "sprites/frankenr.png", x, y);
-        this.health = 1500; // 보스 체력 설정
         this.game = game;
         this.baseY = y;
+        this.health = 1000; // 보스 체력 설정
 
         spriteLeft  = SpriteStore.get().getSprite("sprites/frankenl.png");
         spriteRight = SpriteStore.get().getSprite("sprites/frankenr.png");
@@ -89,7 +69,7 @@ public class Boss1 extends BossEntity {
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
         lightningSprites.add(SpriteStore.get().getSprite("sprites/lightning1.png"));
-        flashSprite = SpriteStore.get().getSprite("sprites/lightning1.png");
+        SpriteStore.get().getSprite("sprites/lightning1.png");
         
         // 보스 등장 시 배경 변경 (zombiebg.jpg)
         game.setBackground("bg/zombiebg.jpg");
@@ -98,12 +78,8 @@ public class Boss1 extends BossEntity {
     @Override
     public void move(long delta) {
         updateFreeze();
+        if (frozen) return;
 
-        if (frozen) return; // 얼었으면 움직이지 않음
-
-        long now = System.currentTimeMillis();
-
-        // 보스 전용 이동 로직
         double oldX = x;
         // 사인 함수를 이용한 수평/수직 이동
         x += Math.sin(System.currentTimeMillis() / 800.0) * 0.4 * delta;
@@ -123,6 +99,8 @@ public class Boss1 extends BossEntity {
             electricCooldown = 5000; // 궁극기 쿨타임 감소
             System.out.println("프랑켄슈타인 분노 상태!");
         }
+
+        long now = System.currentTimeMillis();
 
         // 전기 궁극기 발동 체크
         if (!usingElectric && now - lastElectricAttack >= electricCooldown) {
@@ -146,7 +124,7 @@ public class Boss1 extends BossEntity {
         updateShotInterval();
         if (!usingElectric && now - lastShotTime >= shotInterval) {
             lastShotTime = now;
-            fireShot(); // MonsterEntity 메서드
+            // fireShot(); // 제거: shot 발사 안 함
         }
     }
 
@@ -183,19 +161,8 @@ public class Boss1 extends BossEntity {
     }
 
     @Override
-    public void takeDamage(int damage) {
-        super.takeDamage(damage);
-        if (health > 0) {
-            System.out.println("프랑켄슈타인 피격! 남은 HP: " + health);
-        }
-    }
-
-    @Override
     public void collidedWith(Entity other) {
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
-
-        // 아이템 데미지 적용
-        collidedWithItem(other);
     }
 
     @Override
@@ -255,23 +222,5 @@ public class Boss1 extends BossEntity {
         g2.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         g2.setColor(Color.white);
         g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
-    }
-
-    @Override
-    protected void fireShot() {
-        // MonsterEntity의 fireShot 로직 복사 (간단 버전)
-        int startX = getX() + sprite.getWidth() / 2;
-        int startY = getY() + sprite.getHeight() / 2;
-        UserEntity player = game.getShip();
-        double targetX = startX;
-        double targetY = startY;
-        if (player != null) {
-            targetX = player.getX() + player.getWidth() / 2.0;
-            targetY = player.getY() + player.getHeight() / 2.0;
-        }
-        double vx = (targetX - startX) / 50; // 속도 조정
-        double vy = (targetY - startY) / 50;
-        EnemyShotEntity shot = new EnemyShotEntity(game, "sprites/shot.png", startX, startY, vx, vy, "shot", this);
-        game.addEntity(shot);
     }
 }

@@ -175,7 +175,7 @@ public class Stage3 implements Stage {
                     if (damaged) return;
                     if (other instanceof UserEntity) {
                         UserEntity user = (UserEntity) other;
-                        user.takeDamage(100 + user.getDefense()); // 충돌 시 데미지를 입힘
+                        user.takeDamage(100 - user.getDefense()); // 충돌 시 데미지를 입힘
                         damaged = true;
                     }
                 }

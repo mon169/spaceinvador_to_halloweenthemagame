@@ -11,7 +11,6 @@ import org.newdawn.spaceinvaders.SpriteStore;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
-import org.newdawn.spaceinvaders.entity.UserEntity;
 
 public class Boss4 extends BossEntity {
 
@@ -19,10 +18,8 @@ public class Boss4 extends BossEntity {
      * 기본 상태 관련
      * ================================ */
     private final Game game;
+    // use inherited health from BossEntity
     private boolean enraged = false;
-
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200;
 
     private static final int MAX_Y_BOUNDARY = 370;
     private static final double VERTICAL_RANGE = 30;
@@ -66,12 +63,12 @@ public class Boss4 extends BossEntity {
     private Sprite spriteRight;
     private final List<Sprite> limbSprites = new ArrayList<>();
 
-
     public Boss4(Game game, int x, int y) {
         super(game, "sprites/zombier.png", x, y);
-        this.health = 1000;
         this.game = game;
         this.baseY = y;
+        // 부모 클래스의 health 초기화
+        this.health = 1000;
 
         spriteLeft = SpriteStore.get().getSprite("sprites/zombiel.png");
         spriteRight = SpriteStore.get().getSprite("sprites/zombier.png");
@@ -90,20 +87,17 @@ public class Boss4 extends BossEntity {
      * ================================================== */
     @Override
     public void move(long delta) {
-        updateFreeze();
-        if (!frozen) {
-            double prevX = x;
+        double prevX = x;
 
-            updatePosition(delta);
-            limitBoundary();
-            updateSpriteDirection(prevX);
-            handleRageMode();
+        updatePosition(delta);
+        limitBoundary();
+        updateSpriteDirection(prevX);
+        handleRageMode();
 
-            long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
 
-            handleThrowAttack(now);
-            handleNormalAttack(now);
-        }
+        handleThrowAttack(now);
+        handleNormalAttack(now);
     }
 
 
@@ -192,7 +186,7 @@ public class Boss4 extends BossEntity {
         updateShotInterval();
         if (!usingThrow && now - lastShotTime >= shotInterval) {
             lastShotTime = now;
-            fireShot();
+            // fireShot(); // 제거: shot 발사 안 함
         }
     }
 
@@ -295,23 +289,5 @@ public class Boss4 extends BossEntity {
         g2.setColor(Color.white);
         g2.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
-    }
-
-    @Override
-    protected void fireShot() {
-        // Normal shot
-        int startX = getX() + sprite.getWidth() / 2;
-        int startY = getY() + sprite.getHeight() / 2;
-        UserEntity player = game.getShip();
-        double targetX = startX;
-        double targetY = startY;
-        if (player != null) {
-            targetX = player.getX() + player.getWidth() / 2.0;
-            targetY = player.getY() + player.getHeight() / 2.0;
-        }
-        double vx = (targetX - startX) / 50;
-        double vy = (targetY - startY) / 50;
-        EnemyShotEntity shot = new EnemyShotEntity(game, "sprites/shot.png", startX, startY, vx, vy, "shot", this);
-        game.addEntity(shot);
     }
 }

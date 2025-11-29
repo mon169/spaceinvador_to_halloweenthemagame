@@ -51,31 +51,31 @@ public class Shop {
         // 공격력 증가
         itemsForSale.add(new Item(
             "강력한 마늘",
-            "더욱 매운 마늘로 공격력이 1 증가!",
+            "더욱 매운 마늘로 공격력이 10 증가!",
             250
         ) {
             @Override
             public void applyEffect(UserEntity ship) {
-                ship.increaseAttackPower(1);
+                ship.increaseAttackPower(10);
             }
         });
 
         // 최대 체력 증가
         itemsForSale.add(new Item(
             "쿠키 에너지바",
-            "먹으면 용기가 생겨! 체력이 +20 증가.",
+            "먹으면 용기가 생겨! 체력이 +50 증가.",
             350
         ) {
             @Override
             public void applyEffect(UserEntity ship) {
-                ship.increaseMaxHealth(20);
+                ship.increaseMaxHealth(50);
             }
         });
 
         // 폭탄 아이템 추가
         itemsForSale.add(new Item(
             "생강 폭탄",
-            "터지면 생강 냄새로 광역 피해를 입힌다!\n(B키로 사용)",
+            "터지면 생강 냄새로 광역 피해를 입힌다!\n(A키로 사용)",
             200
         ) {
             @Override
@@ -87,7 +87,7 @@ public class Shop {
         // 얼음 공격 아이템 추가
         itemsForSale.add(new Item(
             "박하사탕",
-            "박하의 마력을 담은 사탕. 달콤함 뒤엔\n냉기의 칼날이 숨어있다.(I키로 사용)",
+            "박하의 마력을 담은 사탕. 달콤함 뒤엔\n냉기의 칼날이 숨어있다.(E키로 사용)",
             150
         ) {
             @Override

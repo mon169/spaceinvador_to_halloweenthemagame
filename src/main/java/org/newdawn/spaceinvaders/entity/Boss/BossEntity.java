@@ -4,10 +4,10 @@ import org.newdawn.spaceinvaders.Game;
 import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.BombShotEntity;
 import org.newdawn.spaceinvaders.entity.IceShotEntity;
-import org.newdawn.spaceinvaders.entity.ShieldEntity;
+import org.newdawn.spaceinvaders.entity.ShotEntity;
 
 public abstract class BossEntity extends Entity {
-    protected int health = 1000;
+    protected int health =1000;
     protected Game game;
 
     // 동결 관련
@@ -31,6 +31,7 @@ public abstract class BossEntity extends Entity {
         lastHitTime = currentTime;
 
         health -= damage;
+        System.out.println("보스 피격! 남은 HP: " + health);
         if (health <= 0) {
             game.bossDefeated();
             game.removeEntity(this);
@@ -48,7 +49,7 @@ public abstract class BossEntity extends Entity {
         }
     }
 
-    protected void freeze(long duration) {
+    public void freeze(long duration) {
         frozen = true;
         freezeEndTime = System.currentTimeMillis() + duration;
         System.out.println("❄️ 보스 동결! (" + (duration / 1000) + "초)");
@@ -57,16 +58,20 @@ public abstract class BossEntity extends Entity {
     // 아이템 데미지 적용
     public void collidedWithItem(Entity other) {
         if (other instanceof BombShotEntity) {
-            takeDamage(500); // 폭탄 데미지 (너무 강해서 줄임)
+            takeDamage(100); // 폭탄 데미지
             game.removeEntity(other);
         } else if (other instanceof IceShotEntity) {
             freeze(3000); // 3초 동결
             game.removeEntity(other);
-        } else if (other instanceof ShieldEntity) {
-            takeDamage(25); // 실드 데미지 (너무 강해서 줄임)
+        } else if (other instanceof ShotEntity) {
+            takeDamage(10); // 일반 샷 데미지
             game.removeEntity(other);
         }
     }
 
-    protected abstract void fireShot();
+    @Override
+    public void collidedWith(Entity other) {
+        // 아이템과의 충돌 처리
+        collidedWithItem(other);
+    }
 }
