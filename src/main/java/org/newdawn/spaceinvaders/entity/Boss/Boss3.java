@@ -1,7 +1,6 @@
 package org.newdawn.spaceinvaders.entity.Boss;
 
 import java.awt.*;
-import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,21 +11,17 @@ import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
+/**
+ * Stage 3 Boss: 미라
+ * - 눈부심 공격 (Wrap Attack)
+ */
 public class Boss3 extends BossEntity {
 
     /* ===========================================================
-       기본 필드
-       =========================================================== */
-    private final Game game;
-
-    // use inherited health from BossEntity
-    private boolean enraged = false;
-
-    /* ===========================================================
-       눈부심 공격 (Wrap Attack)
+       눈부심 공격 (Wrap Attack) - Boss3 고유 필드
        =========================================================== */
     private long lastWrapAttack = 0;
-    private long wrapCooldown = 8000;
+    private long wrapCooldown = 8000; // 초기값
     private boolean usingWrap = false;
     private long wrapDuration = 2500;
     private long wrapEndTime = 0;
@@ -35,108 +30,65 @@ public class Boss3 extends BossEntity {
     private long wrapTickInterval = 400;
 
     /* ===========================================================
-       이동 관련
-       =========================================================== */
-    private final double baseY;
-    private double verticalMoveRange = 30;
-    private boolean movingRight = true;
-
-    /* ===========================================================
-       화면 흔들림
-       =========================================================== */
-    private boolean shaking = false;
-    private long shakeStartTime = 0;
-    private long shakeDuration = 2500;
-    private double shakeIntensity = 8;
-
-    /* ===========================================================
-       스프라이트
+       스프라이트 - Boss3 고유 필드
        =========================================================== */
     private final List<Sprite> bandageSprites = new ArrayList<>();
     private Sprite spriteLeft;
     private Sprite spriteRight;
 
-    /* ===========================================================
-       일반 공격
-       =========================================================== */
-    private long lastShotTime = 0;
-    private long shotInterval = 3000;
-
     public Boss3(Game game, int x, int y) {
         super(game, "sprites/mummyr.png", x, y);
-        this.game = game;
-        this.baseY = y;
-        // 부모 클래스의 health 초기화
-        this.health = 1000;
+        // 부모 클래스(BossEntity)에서 game, baseY, health, sprite 등 공통 필드가 초기화됩니다.
 
         spriteLeft  = SpriteStore.get().getSprite("sprites/mummyl.png");
         spriteRight = SpriteStore.get().getSprite("sprites/mummyr.png");
         sprite = spriteRight;
 
-    // bandageSprites and flashSprite previously used a 'bug' visual; removed per design choice
-
-    // 보스 등장 시 배경 변경 (desert.JPG)
-    game.setBackground("bg/desert.JPG");
+        // 보스 등장 시 배경 변경
+        game.setBackground("bg/desert.JPG");
     }
 
     /* ===========================================================
-       UPDATE / MOVE
+       UPDATE / MOVE (부모 메서드 오버라이딩)
        =========================================================== */
+
     @Override
-    public void move(long delta) {
-        updateFreeze();
-        if (frozen) return;
-
-        updateMovement(delta);
-        checkEnrageState();
-        processWrapAttack();
-        processNormalShot();
-    }
-
-    /* ===========================================================
-       이동
-       =========================================================== */
-    private void updateMovement(long delta) {
-        double oldX = x;
-
-        x += Math.sin(System.currentTimeMillis() / 700.0) * 0.5 * delta;
-        y = baseY + Math.sin(System.currentTimeMillis() / 1000.0) * verticalMoveRange;
-
-        clampPosition();
-        updateSpriteDirection(oldX);
-    }
-
-    private void clampPosition() {
-        if (x < 60) x = 60;
-        if (x > 680) x = 680;
-    }
-
-    private void updateSpriteDirection(double oldX) {
-        movingRight = x > oldX;
+    protected void updateMovement(long delta) {
+        super.updateMovement(delta);
+        // 부모의 이동 로직을 수행한 후, 방향에 따라 스프라이트를 결정
         sprite = movingRight ? spriteRight : spriteLeft;
     }
 
-    /* ===========================================================
-       분노 상태
-       =========================================================== */
-    private void checkEnrageState() {
-        if (!enraged && health <= 750) {
-            enraged = true;
+    @Override
+    protected void updateEnrage() {
+        super.updateEnrage(); // 부모의 분노 상태 체크 (health <= 750)
+        if (enraged) { // 부모 클래스의 enraged 필드 사용
             wrapCooldown = 5000;
             System.out.println("💢 미라 분노 상태!");
         }
     }
 
+    @Override
+    protected void updateShotInterval() {
+        // 기존 Boss3의 로직을 유지하여 공격 빈도 조절
+        if (health > 700) shotInterval = 2000;
+        else if (health > 400) shotInterval = 1200;
+        else shotInterval = 800;
+    }
+
     /* ===========================================================
-       눈부심 공격 처리
+       특수 공격 처리 (BossEntity의 추상 메서드 구현)
        =========================================================== */
-    private void processWrapAttack() {
+    @Override
+    protected void updateSpecialAttack() {
         long now = System.currentTimeMillis();
 
+        // 눈부심 공격 발동 체크
         if (!usingWrap && now - lastWrapAttack >= wrapCooldown) {
             startWrapAttack();
         }
 
+        // 눈부심 공격 지속 처리
         if (usingWrap) {
             updateWrapTick(now);
             if (now >= wrapEndTime) endWrapAttack();
@@ -145,10 +97,10 @@ public class Boss3 extends BossEntity {
 
     private void startWrapAttack() {
         usingWrap = true;
-        shaking = true;
+        shaking = true; // 부모 필드 사용
+        shakeStartTime = System.currentTimeMillis(); // 부모 필드 사용
 
         lastWrapAttack = System.currentTimeMillis();
-        shakeStartTime = lastWrapAttack;
         wrapEndTime = lastWrapAttack + wrapDuration;
         lastWrapTick = lastWrapAttack;
 
@@ -165,7 +117,7 @@ public class Boss3 extends BossEntity {
 
     private void endWrapAttack() {
         usingWrap = false;
-        shaking = false;
+        shaking = false; // 부모 필드 사용
     }
 
     private void dealWrapDamage() {
@@ -174,115 +126,44 @@ public class Boss3 extends BossEntity {
     }
 
     /* ===========================================================
-       일반 공격
+       데미지 / 충돌 처리 (부모 메서드 오버라이딩)
        =========================================================== */
-    private void processNormalShot() {
-        long now = System.currentTimeMillis();
-        updateShotInterval();
 
-        if (usingWrap) return;
-
-        if (now - lastShotTime >= shotInterval) {
-            lastShotTime = now;
-            // fireShot(); // 제거: shot 발사 안 함
-        }
-    }
-
-    private void updateShotInterval() {
-        if (health > 1000) shotInterval = 3000;
-        else if (health > 700) shotInterval = 2000;
-        else if (health > 400) shotInterval = 1200;
-        else shotInterval = 800;
-    }
-
-    /* ===========================================================
-       데미지 처리
-       =========================================================== */
     @Override
     public void takeDamage(int damage) {
         super.takeDamage(damage);
-        if (health > 0) {
+        if (health > 0) { // 부모에서 health 체크 후 처리
             System.out.println("🧟 미라 피격! 남은 HP: " + health);
         }
     }
 
-    private void die() {
-        System.out.println("💀 미라 사망!");
-        game.removeEntity(this);
-        game.bossDefeated();
-    }
-
-    /* ===========================================================
-       충돌 처리
-       =========================================================== */
     @Override
     public void collidedWith(Entity other) {
+        // 충돌 방지 대상 체크 (기존 기능 유지)
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
 
-        // 아이템 데미지 적용
-        collidedWithItem(other);
+        // 아이템 데미지 적용 및 일반 충돌 처리는 부모의 로직으로 위임
+        super.collidedWith(other);
     }
 
     /* ===========================================================
-       DRAW
+       DRAW (특수 효과만 구현)
        =========================================================== */
     @Override
-    public void draw(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g;
-        AffineTransform oldTransform = g2.getTransform();
+    protected void drawSpecialEffect(Graphics2D g2) {
+        if (!usingWrap) return;
 
-        applyShakeEffect(g2);
-        drawBossImage(g2);
-        g2.setTransform(oldTransform);
-
-        if (usingWrap) drawWrapEffect(g2);
-        drawHpBar(g2);
-    }
-
-    private void applyShakeEffect(Graphics2D g2) {
-        if (!shaking) return;
-
-        long elapsed = System.currentTimeMillis() - shakeStartTime;
-        if (elapsed >= shakeDuration) return;
-
-        int offsetX = (int)(Math.random() * shakeIntensity - shakeIntensity / 2);
-        int offsetY = (int)(Math.random() * shakeIntensity - shakeIntensity / 2);
-        g2.translate(offsetX, offsetY);
-    }
-
-    private void drawBossImage(Graphics2D g2) {
-        Image img = sprite.getImage().getScaledInstance(
-                (int)(sprite.getWidth() * 0.5),
-                (int)(sprite.getHeight() * 0.5),
-                Image.SCALE_SMOOTH
-        );
-        g2.drawImage(img, (int)x - 40, (int)y - 40, null);
-    }
-
-    private void drawWrapEffect(Graphics2D g2) {
+        // 눈부심 효과: 화면 전체 색상 변화
         double t = (System.currentTimeMillis() % 300) / 300.0;
         int alpha = (int)(100 + 100 * Math.sin(t * Math.PI * 2));
-        g2.setColor(new Color(255, 220, 150, alpha));
-
+        g2.setColor(new Color(255, 220, 150, alpha)); // 노란색 계열의 밝은 색상
         g2.fillRect(0, 0, 800, 600);
 
+        // 붕대 스프라이트 무작위 배치 효과
         for (Sprite s : bandageSprites) {
             int lx = (int)(Math.random() * 750);
             int ly = (int)(Math.random() * 400);
             g2.drawImage(s.getImage(), lx, ly, s.getWidth() / 2, s.getHeight() / 2, null);
         }
-    }
-
-    private void drawHpBar(Graphics2D g2) {
-        g2.setColor(Color.red);
-        g2.fillRect((int)x - 50, (int)y - 70, 100, 6);
-
-        g2.setColor(Color.green);
-        int hpWidth = (int)(100 * (health / 1000.0));
-        g2.fillRect((int)x - 50, (int)y - 70, hpWidth, 6);
-
-        g2.setFont(new Font("맑은 고딕", Font.BOLD, 12));
-        g2.setColor(Color.white);
-        g2.drawString(health + " / 1000", (int)x - 25, (int)y - 80);
     }
 }
