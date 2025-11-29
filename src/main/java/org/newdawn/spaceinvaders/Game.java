@@ -313,6 +313,38 @@ public class Game extends Canvas {
     }
 
     // ========= 입력 처리 =========
+    
+    // 💡 InputManager로부터 위임된 아이템 사용 로직
+    /**
+     * A 키 입력 시 폭탄 무기 사용을 시도합니다.
+     * InputManager의 아이템 소지 체크 로직을 Game 클래스로 이동합니다.
+     */
+    public void useBombWeapon() {
+        if (ship != null && ship.hasBomb()) {
+            ship.useBomb();
+        }
+    }
+
+    /**
+     * E 키 입력 시 얼음 무기 사용을 시도합니다.
+     * InputManager의 아이템 소지 체크 로직을 Game 클래스로 이동합니다.
+     */
+    public void useIceWeapon() {
+        if (ship != null && ship.hasIceWeapon()) {
+            ship.useIceWeapon();
+        }
+    }
+
+    /**
+     * S 키 입력 시 방어막 활성화를 시도합니다.
+     * InputManager의 방어막 소지 체크 로직을 Game 클래스로 이동합니다.
+     */
+    public void activateShield() {
+        if (ship != null && ship.hasShield()) {
+            ship.activateShield();
+        }
+    }
+
     private void handleMovement() {
         if (ship == null) return;
         ship.setHorizontalMovement(0);
@@ -439,7 +471,33 @@ public class Game extends Canvas {
         shopOpen = false;
     }
 
-    // ========= 상점 =========
+    // ========= 상점/대기 상태 입력 처리 =========
+
+    /**
+     * 게임 대기 상태일 때(메인 화면, 사망 후, 스테이지 클리어)의 
+     * 모든 키 입력(상점, R키 재시작, 새 게임 시작 등)을 분기 처리합니다.
+     * InputManager의 keyTyped 로직을 Game 클래스로 이동합니다.
+     */
+    public void handleWaitingKeyInput(char c) {
+        // ✅ 상점 열림 상태 → 상점 입력 처리
+        if (isShopOpenFlag()) {
+            handleShopKey(c); 
+            return;
+        }
+
+        // ✅ 사망/요새 파괴 후 R키 → 현재 스테이지 재시작
+        if (c == 'r' || c == 'R') {
+            System.out.println("🔁 R키 입력 — 현재 스테이지 재도전 실행");
+            restartCurrentStage();
+            return;
+        }
+
+        // ✅ 그 외 아무 키 → 새 게임 시작 (Stage1부터)
+        setWaitingForKeyPress(false);
+        System.out.println("▶ 새 게임 시작 (Stage1)");
+        startGameOrNextStage(1);
+    }
+
     public void handleShopKey(char key) {
         if (!shopOpen || shop == null || ship == null) return;
 
