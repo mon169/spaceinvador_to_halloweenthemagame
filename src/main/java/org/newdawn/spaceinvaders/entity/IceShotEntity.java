@@ -12,7 +12,7 @@ public class IceShotEntity extends Entity {
     private Game game;
     private double moveSpeed = -300;
     private int freezeDuration = 3000; 
-    private static final int FREEZE_RADIUS = 150; // 폭탄(250)보다 작은 광역 범위
+    private static final int FREEZE_RADIUS = 170; // 폭탄(200)보다 작은 광역 범위
     private boolean used = false;
 
     public IceShotEntity(Game game, String ref, int x, int y) {
@@ -23,8 +23,8 @@ public class IceShotEntity extends Entity {
     public void move(long delta) {
         setVerticalMovement(moveSpeed);
         super.move(delta);
-        if (y < -50) {
-            game.removeEntity(this);
+        if (y < 150) {
+            freezeArea();
         }
     }
 

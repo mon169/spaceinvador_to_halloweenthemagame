@@ -87,6 +87,9 @@ public class Boss4 extends BossEntity {
      * ================================================== */
     @Override
     public void move(long delta) {
+        updateFreeze();
+        if (frozen) return;
+
         double prevX = x;
 
         updatePosition(delta);

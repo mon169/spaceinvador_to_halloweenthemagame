@@ -27,7 +27,7 @@ public class BombShotEntity extends Entity {
     /** 위로 이동 속도(px/s) */
     private static final double MOVE_SPEED = -300;
     /** 폭발 반경(px) - 적당한 범위 */
-    private static final int EXPLOSION_RADIUS = 150;
+    private static final int EXPLOSION_RADIUS = 200;
 
     public BombShotEntity(Game game, String spriteRef, int x, int y) {
         super(spriteRef, x, y);

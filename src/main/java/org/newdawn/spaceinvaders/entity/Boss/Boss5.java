@@ -83,6 +83,9 @@ public class Boss5 extends BossEntity {
      * =============================================== */
     @Override
     public void move(long delta) {
+        updateFreeze();
+        if (frozen) return;
+
         long now = System.currentTimeMillis();
         double oldX = x;
 
