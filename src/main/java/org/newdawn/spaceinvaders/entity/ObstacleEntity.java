@@ -18,7 +18,7 @@ public class ObstacleEntity extends Entity {
     private static final int[] hitToNextStage = {2, 2, 2, 2}; // 각 단계별 필요 타격 수
     private static final Random random = new Random();
     
-    // candywall 그룹별 4프레임 이미지 경로
+    // candywall 그룹별 4프레임 이미지 경로 (classpath 기준)
     // a_1 = obstacle1, a_2 = obstacle2, a_3 = obstacle3, a_4 = obstacle4
     private static final String[][] GROUP_TO_FRAMES = new String[][]{
         // a 그룹
@@ -51,8 +51,8 @@ public class ObstacleEntity extends Entity {
      * 기본 생성자 - a, b, c 중 랜덤 선택
      */
     public ObstacleEntity(Game game, int x, int y) {
-        // 빈 경로로 먼저 생성 (Entity 생성자가 빈 경로를 허용하도록 수정됨)
-        super("", x, y);
+        // 기본 placeholder 스프라이트로 초기화한 뒤 실제 candywall 프레임으로 교체
+        super("sprites/obstacle1.png", x, y);
         this.game = game;
         this.stage = 1;
         // 랜덤 그룹 선택하여 frames 배열 저장

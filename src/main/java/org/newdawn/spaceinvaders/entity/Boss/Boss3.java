@@ -12,14 +12,14 @@ import org.newdawn.spaceinvaders.entity.Entity;
 import org.newdawn.spaceinvaders.entity.EnemyShotEntity;
 import org.newdawn.spaceinvaders.entity.MonsterEntity;
 
-public class Boss3 extends MonsterEntity {
+public class Boss3 extends BossEntity {
 
     /* ===========================================================
        기본 필드
        =========================================================== */
     private final Game game;
 
-    private int health = 10;
+    // use inherited health from BossEntity
     private boolean enraged = false;
 
     /* ===========================================================
@@ -57,21 +57,17 @@ public class Boss3 extends MonsterEntity {
     private Sprite spriteRight;
 
     /* ===========================================================
-       타격 처리
-       =========================================================== */
-    private long lastHitTime = 0;
-    private static final long HIT_COOLDOWN = 200;
-
-    /* ===========================================================
        일반 공격
        =========================================================== */
     private long lastShotTime = 0;
     private long shotInterval = 3000;
 
     public Boss3(Game game, int x, int y) {
-        super(game, x, y);
+        super(game, "sprites/mummyr.png", x, y);
         this.game = game;
         this.baseY = y;
+        // 부모 클래스의 health 초기화
+        this.health = 1000;
 
         spriteLeft  = SpriteStore.get().getSprite("sprites/mummyl.png");
         spriteRight = SpriteStore.get().getSprite("sprites/mummyr.png");
@@ -185,7 +181,7 @@ public class Boss3 extends MonsterEntity {
 
         if (now - lastShotTime >= shotInterval) {
             lastShotTime = now;
-            fireShot();
+            // fireShot(); // 제거: shot 발사 안 함
         }
     }
 
@@ -200,20 +196,11 @@ public class Boss3 extends MonsterEntity {
        데미지 처리
        =========================================================== */
     @Override
-    public boolean takeDamage(int damage) {
-        long now = System.currentTimeMillis();
-        if (now - lastHitTime < HIT_COOLDOWN) return false;
-
-        lastHitTime = now;
-        health -= damage;
-
-        System.out.println("🧟 미라 피격! 남은 HP: " + health);
-
-        if (health <= 0) {
-            die();
-            return true;
+    public void takeDamage(int damage) {
+        super.takeDamage(damage);
+        if (health > 0) {
+            System.out.println("🧟 미라 피격! 남은 HP: " + health);
         }
-        return false;
     }
 
     private void die() {
@@ -228,6 +215,9 @@ public class Boss3 extends MonsterEntity {
     @Override
     public void collidedWith(Entity other) {
         if (other instanceof EnemyShotEntity || other instanceof MonsterEntity) return;
+
+        // 아이템 데미지 적용
+        collidedWithItem(other);
     }
 
     /* ===========================================================

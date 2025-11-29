@@ -1,6 +1,7 @@
 package org.newdawn.spaceinvaders.entity;
 
 import org.newdawn.spaceinvaders.Game;
+import org.newdawn.spaceinvaders.entity.Boss.BossEntity;
 
 /**
  * An entity representing a shot fired by the player's ship
@@ -75,6 +76,14 @@ public class ShotEntity extends Entity {
 				game.removeEntity(alien);
 				game.notifyAlienKilled();
 			}
+		} else if (other instanceof BossEntity) {
+			// remove this shot
+			game.removeEntity(this);
+			used = true;
+			
+			// damage the boss
+			BossEntity boss = (BossEntity) other;
+			boss.takeDamage(this.attackPower);
 		}
 	}
 }
