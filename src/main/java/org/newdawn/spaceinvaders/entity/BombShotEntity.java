@@ -27,7 +27,7 @@ public class BombShotEntity extends Entity {
     /** 위로 이동 속도(px/s) */
     private static final double MOVE_SPEED = -300;
     /** 폭발 반경(px) - 적당한 범위 */
-    private static final int EXPLOSION_RADIUS = 250;
+    private static final int EXPLOSION_RADIUS = 150;
 
     public BombShotEntity(Game game, String spriteRef, int x, int y) {
         super(spriteRef, x, y);
@@ -50,9 +50,9 @@ public class BombShotEntity extends Entity {
         List<Entity> toHit = new ArrayList<>();
         System.out.println("💥 폭발 실행 — 위치(" + x + "," + y + ") 반경=" + EXPLOSION_RADIUS);
 
-        // 반경 내 MonsterEntity 수집 (보스 포함)
+        // 반경 내 MonsterEntity 및 BossEntity 수집 (보스 포함), 최대 2마리
         for (Entity e : game.getEntities()) {
-            if (e instanceof MonsterEntity) {
+            if ((e instanceof MonsterEntity || e instanceof BossEntity) && toHit.size() < 2) {
                 double dist = Math.hypot(e.getX() - x, e.getY() - y);
                 if (dist <= EXPLOSION_RADIUS) {
                     toHit.add(e);
@@ -65,7 +65,7 @@ public class BombShotEntity extends Entity {
         for (Entity e : toHit) {
             if (e instanceof BossEntity) {
                 // 보스는 체력 기반으로 피해 받음
-                ((BossEntity) e).takeDamage(200); // 폭탄 피해
+                ((BossEntity) e).takeDamage(100); // 폭탄 피해
             } else {
                 game.removeEntity(e);
                 game.notifyAlienKilled();

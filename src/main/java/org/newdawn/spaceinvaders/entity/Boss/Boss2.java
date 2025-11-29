@@ -14,9 +14,12 @@ public class Boss2 extends BossEntity {
 	// --------------------------
 	private final Game game;
 
-	private static final int MAX_HEALTH = 1500;
+	private static final int MAX_HEALTH = 1000;
+	private int health = MAX_HEALTH;
 
 	private boolean enraged = false;
+	private long lastHitTime = 0;
+	private static final long HIT_COOLDOWN = 200;
 
 	// 이동
 	private double baseY;
@@ -58,7 +61,6 @@ public class Boss2 extends BossEntity {
 	// --------------------------
 	public Boss2(Game game, int x, int y) {
 		super(game, "sprites/witchr.png", x, y);
-		this.health = MAX_HEALTH;
 		this.game = game;
 		this.baseY = y;
 
@@ -119,14 +121,11 @@ public class Boss2 extends BossEntity {
 	// --------------------------
 	@Override
 	public void move(long delta) {
-		updateFreeze();
-		if (!frozen) {
-			updateMovement(delta);
-			updateEnrage();
-			updateUltimateSkill();
-			updateNormalAttack();
-			cleanupEffects();
-		}
+		updateMovement(delta);
+		updateEnrage();
+		updateUltimateSkill();
+		updateNormalAttack();
+		cleanupEffects();
 	}
 
 	private void updateMovement(long delta) {
@@ -174,7 +173,7 @@ public class Boss2 extends BossEntity {
 
 		if (!usingPotion && now - lastShotTime >= shotInterval) {
 			lastShotTime = now;
-			fireShot();
+			// fireShot(); // 제거: shot 발사 안 함
 		}
 	}
 
@@ -387,16 +386,5 @@ public class Boss2 extends BossEntity {
 		boolean isExpired(long now) {
 			return now > startTime + duration;
 		}
-	}
-
-	private void spawnPotionBomb() {
-		int px = (int)x + sprite.getWidth() / 2;
-		int py = (int)y + sprite.getHeight() / 2;
-		game.addEntity(new PotionBomb(px, py));
-	}
-
-	@Override
-	protected void fireShot() {
-		spawnPotionBomb();
 	}
 }

@@ -103,11 +103,8 @@ public class Game extends Canvas {
     // flag: 다음 startGameOrNextStage 호출 시 이전 플레이어 상태를 유지할지 여부
     private boolean retainPlayerOnNextStart = false;
 
-    // 🔥[ADDED] Firebase 연동 필드
-    private String loggedInUser; // 로그인한 사용자 이메일
 
     private Sprite bg;
-    private Sprite originalBg; // 원래 배경 저장 (보스 등장 전 배경)
     private Shop shop = new Shop();
 
     // ========= 생성자 =========
@@ -139,8 +136,6 @@ public class Game extends Canvas {
 
         container.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                SoundManager.stopGameBgm(); // 게임 BGM 중지
-                saveUserDataToFirebase(); // Firebase에 데이터 저장
                 System.exit(0);
             }
         });
@@ -161,23 +156,6 @@ public class Game extends Canvas {
         addKeyListener(inputManager);
 
         bg = SpriteStore.get().getSprite("bg/level1_background.jpg");
-        
-        // level1_background.jpg는 start_background.jpg가 아니므로 game_bgm 재생
-        checkAndPlayGameBgm("bg/level1_background.jpg");
-    }
-    
-    /**
-     * 배경이 start_background.jpg가 아닌 경우 game_bgm 재생
-     */
-    private void checkAndPlayGameBgm(String bgPath) {
-        if (bgPath != null && !bgPath.equals("bg/start_background.jpg") && !bgPath.contains("start_background")) {
-            try {
-                Class.forName("org.newdawn.spaceinvaders.sound.SoundManager");
-                SoundManager.playGameBgmLoop(); // 게임 BGM 재생
-            } catch (Exception e) {
-                System.err.println("⚠️ SoundManager 초기화 실패: " + e.getMessage());
-            }
-        }
     }
 
     private void initEntities() {
@@ -390,10 +368,6 @@ public class Game extends Canvas {
         }
 
         stageManager.loadStage(currentStage);
-        stageManager.resetAllStageFlags(); // ✅ 재시작 시에도 모든 스테이지 플래그 리셋
-        
-        // 재시작 시 보스가 없으면 배경 복원
-        restoreBackgroundIfNoBoss();
 
         leftPressed = rightPressed = firePressed = false;
         waitingForKeyPress = false;
@@ -404,6 +378,9 @@ public class Game extends Canvas {
         countMonsters();
 
         System.out.println("🔁 Stage " + currentStage + " 재시작 완료");
+
+        // 게임 BGM 재생
+        SoundManager.playGameBgmLoop();
     }
 
     // ========= 사망 처리 =========
@@ -422,13 +399,6 @@ public class Game extends Canvas {
     public void bossDefeated() {
         bossSpawned = false;
         if (ship != null) ship.earnMoney(500);
-        
-        // 보스 처치 시 원래 배경으로 복원
-        if (originalBg != null) {
-            bg = originalBg;
-            originalBg = null;
-            System.out.println("🔄 배경 복원: 원래 배경으로 변경");
-        }
 
         message = "🎉 Stage " + currentStage + " 클리어!\n보스를 물리쳤습니다!";
         waitingForKeyPress = true;
@@ -437,15 +407,6 @@ public class Game extends Canvas {
         if (currentStage == MAX_STAGE) {
             message = "👑 모든 스테이지 클리어!\n축하합니다!";
             shopOpen = false;
-        } else if (shopOpen) {
-            // 상점이 열릴 때 start_bgm 재생
-            try {
-                Class.forName("org.newdawn.spaceinvaders.sound.SoundManager");
-                SoundManager.stopGameBgm(); // game_bgm 중지
-                SoundManager.playStartBgmLoop(); // start_bgm 재생
-            } catch (Exception e) {
-                System.err.println("⚠️ SoundManager 초기화 실패: " + e.getMessage());
-            }
         }
     }
 
@@ -496,18 +457,7 @@ public class Game extends Canvas {
                 waitingForKeyPress = true;
             } else {
                 // ✅ 다음 스테이지로 이동
-                SoundManager.playClick(); // 클릭 사운드
-                // 상점이 닫힐 때 game_bgm으로 전환
-                try {
-                    Class.forName("org.newdawn.spaceinvaders.sound.SoundManager");
-                    SoundManager.stopStartBgm(); // start_bgm 중지
-                    SoundManager.playGameBgmLoop(); // game_bgm 재생
-                } catch (Exception e) {
-                    System.err.println("⚠️ SoundManager 초기화 실패: " + e.getMessage());
-                }
                 currentStage++;
-                // 스테이지 전환 시 배경 상태 초기화
-                originalBg = null;
                 // 다음 시작에서는 플레이어가 상점에서 구매한 상태를 유지
                 this.retainPlayerOnNextStart = true;
                 waitingForKeyPress = false;
@@ -534,111 +484,7 @@ public class Game extends Canvas {
     }
 
     // ========= 조작 =========
-    public void endGame() {
-        SoundManager.stopGameBgm(); // 게임 BGM 중지
-        saveUserDataToFirebase(); // Firebase에 데이터 저장
-        System.exit(0);
-    }
-
-    // ========= Firebase 연동 =========
-    /**
-     * StartScreen에서 호출 - 로그인한 사용자 정보 설정 및 Firebase 데이터 로드
-     */
-    public void setLoggedInUser(String email) {
-        this.loggedInUser = email;
-        System.out.println("🎮 게임 시작 - 사용자: " + email);
-        loadUserDataFromFirebase();
-    }
-
-    /**
-     * Firebase에서 사용자 데이터 로드 (stage, score, money)
-     */
-    private void loadUserDataFromFirebase() {
-        if (loggedInUser == null) {
-            System.out.println("ℹ️ 로그인하지 않은 사용자 - 기본값으로 시작");
-            return;
-        }
-
-        try {
-            // Firebase 관련 클래스가 활성화되면 주석 해제
-            /*
-            Class<?> firebaseServiceClass = Class.forName("org.newdawn.spaceinvaders.entity.Firebase.FirebaseService");
-            Object firestore = firebaseServiceClass.getMethod("getFirestore").invoke(null);
-            
-            Class<?> apiFutureClass = Class.forName("com.google.api.core.ApiFuture");
-            Object future = firestore.getClass().getMethod("collection", String.class)
-                .invoke(firestore, "users")
-                .getClass().getMethod("document", String.class)
-                .invoke(firestore.getClass().getMethod("collection", String.class).invoke(firestore, "users"), loggedInUser)
-                .getClass().getMethod("get").invoke(null);
-            
-            Object doc = apiFutureClass.getMethod("get").invoke(future);
-            boolean exists = (Boolean) doc.getClass().getMethod("exists").invoke(doc);
-            
-            if (exists) {
-                Object userData = doc.getClass().getMethod("getData").invoke(doc);
-                int stage = (Integer) userData.getClass().getMethod("getStage").invoke(userData);
-                int score = (Integer) userData.getClass().getMethod("getScore").invoke(userData);
-                int money = (Integer) userData.getClass().getMethod("getMoney").invoke(userData);
-                
-                // UserEntity에 데이터 적용
-                if (ship != null) {
-                    ship.earnMoney(money - ship.getMoney()); // 차이만큼 추가
-                    ship.addScore(score - ship.getScore()); // 차이만큼 추가
-                }
-                currentStage = stage;
-                
-                System.out.println("✅ Firebase 데이터 로드 완료 - Stage: " + stage + ", Score: " + score + ", Money: " + money);
-            } else {
-                System.out.println("ℹ️ 새 사용자 - 기본값으로 시작");
-            }
-            */
-            System.out.println("ℹ️ Firebase 연동 준비됨 (클래스 활성화 필요)");
-        } catch (Exception e) {
-            System.err.println("⚠️ Firebase 데이터 로드 실패: " + e.getMessage());
-            // Firebase 연동 실패해도 게임은 계속 진행
-        }
-    }
-
-    /**
-     * Firebase에 사용자 데이터 저장 (stage, score, money)
-     */
-    private void saveUserDataToFirebase() {
-        if (loggedInUser == null || ship == null) {
-            return; // 로그인하지 않았거나 ship이 없으면 저장하지 않음
-        }
-
-        try {
-            // Firebase 관련 클래스가 활성화되면 주석 해제
-            /*
-            Class<?> firebaseServiceClass = Class.forName("org.newdawn.spaceinvaders.entity.Firebase.FirebaseService");
-            Object firestore = firebaseServiceClass.getMethod("getFirestore").invoke(null);
-            
-            Class<?> userDataClass = Class.forName("org.newdawn.spaceinvaders.entity.Firebase.UserData");
-            Object userData = userDataClass.getConstructor(String.class, int.class, int.class, int.class)
-                .newInstance(loggedInUser, currentStage, ship.getScore(), ship.getMoney());
-            
-            firestore.getClass().getMethod("collection", String.class)
-                .invoke(firestore, "users")
-                .getClass().getMethod("document", String.class)
-                .invoke(firestore.getClass().getMethod("collection", String.class).invoke(firestore, "users"), loggedInUser)
-                .getClass().getMethod("set", Object.class).invoke(null, userData);
-            
-            System.out.println("✅ Firebase 데이터 저장 완료 - Stage: " + currentStage + ", Score: " + ship.getScore() + ", Money: " + ship.getMoney());
-            */
-            System.out.println("ℹ️ Firebase 연동 준비됨 (클래스 활성화 필요)");
-        } catch (Exception e) {
-            System.err.println("⚠️ Firebase 데이터 저장 실패: " + e.getMessage());
-            // 저장 실패해도 게임 종료는 정상 진행
-        }
-    }
-
-    /**
-     * 로그인한 사용자 이메일 반환
-     */
-    public String getLoggedInUser() {
-        return loggedInUser;
-    }
+    public void endGame() { System.exit(0); }
     public void setLeftPressed(boolean v) { leftPressed = v; }
     public void setRightPressed(boolean v) { rightPressed = v; }
     public void setFirePressed(boolean v) { firePressed = v; }
@@ -686,45 +532,10 @@ public class Game extends Canvas {
     public int getBaseTimeLimit() { return BASE_TIME_LIMIT; }
     public int getLifeLimit() { return LIFE_LIMIT; }
     public Shop getShop() { return this.shop; }
-    
-    // 배경 변경 메서드 (보스 등장 시 사용)
+
+    // 배경 변경 메서드
     public void setBackground(String bgPath) {
-        // 현재 배경을 원래 배경으로 저장 (처음 한 번만)
-        if (originalBg == null) {
-            originalBg = bg;
-        }
-        bg = SpriteStore.get().getSprite(bgPath);
-        if (bg == null) {
-            System.err.println("⚠️ 배경 이미지 로드 실패: " + bgPath);
-        } else {
-            System.out.println("✅ 배경 변경: " + bgPath);
-            
-            // start_background.jpg가 아닌 배경이면 game_bgm 재생
-            checkAndPlayGameBgm(bgPath);
-        }
-    }
-    
-    // 보스가 없으면 배경 복원
-    private void restoreBackgroundIfNoBoss() {
-        // entities에 보스가 있는지 확인 (클래스 이름으로 체크)
-        boolean hasBoss = false;
-        for (Entity e : entities) {
-            String className = e.getClass().getSimpleName();
-            if (className.startsWith("Boss") && 
-                (className.equals("Boss1") || className.equals("Boss2") || 
-                 className.equals("Boss3") || className.equals("Boss4") || 
-                 className.equals("Boss5"))) {
-                hasBoss = true;
-                break;
-            }
-        }
-        
-        // 보스가 없고 원래 배경이 저장되어 있으면 복원
-        if (!hasBoss && originalBg != null) {
-            bg = originalBg;
-            originalBg = null;
-            System.out.println("🔄 배경 복원: 보스가 없어서 원래 배경으로 변경");
-        }
+        this.bg = SpriteStore.get().getSprite(bgPath);
     }
 
     // ✅ 메인 실행 진입점 추가
